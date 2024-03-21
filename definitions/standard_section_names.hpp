@@ -1,0 +1,133 @@
+#ifndef STANDARD_SECTION_NAMES_HPP
+#define STANDARD_SECTION_NAMES_HPP
+
+#include <vector>
+#include <string>
+
+const std::vector<std::string> standard_section_names = {
+    ".00cfg",
+    ".AAWEBS",
+    ".apiset",
+    ".arch",
+    ".autoload_text",
+    ".bindat",
+    ".bndat",  // bound import data (found via ChatGPT)
+    ".bootdat",
+    ".bss",
+    ".BSS",
+    ".buildid",
+    ".CLR_UEF",
+    ".code",
+    ".cormeta",
+    ".complua",
+    ".crt",
+    ".CRT",
+    ".cygwin_dll_common",
+    ".data",
+    ".DATA",
+    ".data1",
+    ".data2",
+    ".data3",
+    ".debug",
+    ".debug$F",
+    ".debug$P",
+    ".debug$S",
+    ".debug$T",
+    ".debug_abbrev",
+    ".debug_aranges",
+    ".debug_frame",
+    ".debug_gnu_pubnames",
+    ".debug_gnu_pubtypes",
+    ".debug_info",
+    ".debug_line",
+    ".debug_line_str",
+    ".debug_loc",
+    ".debug_loclists",
+    ".debug_macinfo",
+    ".debug_macro",
+    ".debug_pubnames",
+    ".debug_pubtypes",
+    ".debug_ranges",
+    ".debug_rnglists",
+    ".debug_static_funcs",
+    ".debug_static_vars",
+    ".debug_str",
+    ".debug_str_offsets",
+    ".drectve",
+    ".didat",
+    ".didata",
+    ".edata",
+    ".eh_frame",
+    ".eh_frame_hdr",
+    ".export",
+    ".fasm",
+    ".flat",
+    ".gfids",
+    ".giats",
+    ".gljmp",
+    ".glue_7t",
+    ".glue_7",
+    ".idata",
+    ".idlsym",
+    ".impdata",
+    ".import",
+    ".itext",
+    ".loadcfg",  // SafeSEH and Control Flow Guard (CFG) information (found via ChatGPT)
+    ".mddat",  // Managed Device Driver data (found via ChatGPT)
+    ".ndata",
+    ".orpc",
+    ".pdata",
+    ".rdata",
+    ".rdata1",  // (found via ChatGPT)
+    ".reloc",
+    ".rodata",
+    ".rsrc",
+    ".sbss",
+    ".script",
+    ".shared",
+    ".sdata",
+    ".srdata",
+    ".stab",
+    ".stabstr",
+    ".sxdata",
+    ".text",
+    ".text0",
+    ".text1",
+    ".text2",
+    ".text3",
+    ".textbss",
+    ".tls",
+    ".tls$",
+    ".trace_abbrev",
+    ".trace_aranges",
+    ".trace_info",
+    ".udata",
+    ".vsdata",
+    ".xdata",
+    ".wixburn",
+    ".wpp_sf",
+    "begbss",  // found in Watcom-compiled binaries
+    "begdata",  // found in Watcom-compiled binaries
+    "begtext",  // found in Watcom-compiled binaries
+    "BSS",  // found in Borland binaries
+    "CODE",  // found in Borland binaries
+    "DATA",  // found in Borland binaries
+    "DGROUP",  // found in Borland binaries
+    "edata",
+    "endbss",  // found in Watcom-compiled binaries
+    "enddata",  // found in Watcom-compiled binaries
+    "endtext",  // found in Watcom-compiled binaries
+    "idata",
+    "INIT",
+    "minATL",
+    "PAGE",
+    "data",
+    "rdata",
+    "sdata",
+    "shared",
+    "Shared",
+    "testdata",
+    "text"
+};
+
+#endif // STANDARD_SECTION_NAMES_HPP
