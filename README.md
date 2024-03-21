@@ -4,8 +4,7 @@
 ![PackerMask](https://img.shields.io/badge/PackerMask-v0.0.1-blue.svg)
 ![Version](https://img.shields.io/badge/Black%20Hat%20Arsenal-EU%202024-1E90FF)
 ![License](https://img.shields.io/badge/license-GNU-red.svg)
-![RedTeam](https://img.shields.io/badge/Red%20Team-Tool-red.svg)
-![Build](https://img.shields.io/badge/build-beta-green.svg)
+![Status](https://img.shields.io/badge/status-bêta-red.svg)
 
 ---
 PackingMasking, is an adversarial weaponized tool to alter a packed executable to evade static packing detection. It is designed to be used by malware analysts to test the effectiveness of their detection mechanisms and to improve their detection capabilities. It is also useful for red teamers to test the effectiveness of their evasion techniques, and highlight potential weaknesses of a target's security mechanisms.
