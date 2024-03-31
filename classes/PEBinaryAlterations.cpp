@@ -40,6 +40,16 @@ public:
         // pre_data = {}  : empty
     }
 
+    static void fill_sections_with_zeros(PEBinary& binary){
+        // Description: Stretch sections with zeros from their raw size to their virtual size
+        size_t size_to_fill = 0;
+        for(LIEF::PE::Section& section : binary.get_sections()){
+            size_to_fill = section.virtual_size() - section.sizeof_raw_data();
+            if(size_to_fill > 0){
+                binary.append_to_section(section.name(), std::vector<uint8_t>(size_to_fill, 0));
+            }
+        }
+    }
 private:
     static void _rename_one_packer_section(PEBinary& binary){
 

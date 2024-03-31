@@ -13,40 +13,33 @@
 #include "utils/select_section_name.cpp"
 #include "utils/generate_random_bytes.cpp"
 
-void move_entrypoint_to_new_low_entropy_section(PEBinary& binary){
-    // this function is for moving the entry point to a new section with low entropy and common related name
-
-    std::vector<std::string> select_from_this = {".text", ".code", ".init", ".page", ".cde", ".textbss"};
-    std::vector<std::string> section_names = binary.get_section_names();
-    std::vector<std::string> standard_section_names = binary.get_standard_section_names();
-
-    std::string to_section = select_section_name(select_from_this, standard_section_names,{}, section_names);
-
-    // from the python version : "randstr(64, randbytes(3), balance=True)", here is the equivalent in C++
-    std::vector<uint8_t> post_data = generateRandomBytes(64);
-
-    // move the entry point to the new section
-    binary.move_entrypoint_to_new_section(to_section, 0, {}, post_data);
-    // NOTE:
-    // Characteristics = 0 will be replaced with READ | EXECUTE
-    // pre_data = {}  : empty
+void fill_sections_with_zeros(PEBinary& binary){
+    // Description: Stretch sections with zeros from their raw size to their virtual size
+    size_t size_to_fill = 0;
+    for(LIEF::PE::Section& section : binary.get_sections()){
+        size_to_fill = section.virtual_size() - section.sizeof_raw_data();
+        if(size_to_fill > 0){
+            //debug print
+            std::cout << "Filling section " << section.name() << " with " << size_to_fill << " zeros" << std::endl;
+            binary.append_to_section(section.name(), std::vector<uint8_t>(size_to_fill, 0));
+        }else{
+            std::cout << "Section " << section.name() << " is already filled (size_to_fill =" << size_to_fill << ")" << std::endl;
+        }
+    }
 }
 
 
 /*
 
-move_entrypoint_to_new_low_entropy_section:
+fill_sections_with_zeros:
   attack: evasion
-  comment: Currently, this alteration is not resistant to further signature creation (i.e. trampoline code is static and it is trivial to generate a signature for detecting it) ; this could be refined with adding randomization so that bytes after EP cannot be used for signatures without causing many FP.
-  description: Move the Entry Point to a new section with low entropy and common related name (in last resort, use a random common name, whatever the typical section type)
+  description: Stretch sections with zeros from their raw size to their virtual size
+  fail: continue
+  loop: sections
   result:
-    PE: move_entrypoint_to_new_section(
-            select_section_name(
-                [".text", ".code", ".init", ".page", ".cde", ".textbss"],
-                STANDARD_SECTION_NAMES,
-                exclusions=pe['section_names']
-            ),
-            post_data=randstr(64, randbytes(3), balance=True)
+    PE: append_to_section(
+            section,
+            repeatn(randbytes(3), section['virtual_size'] - section['raw_data_size'])
         )
 */
 
@@ -83,7 +76,7 @@ int main( int argc, char **argv) {
     }
 
 
-    move_entrypoint_to_new_low_entropy_section(binary);
+    fill_sections_with_zeros(binary);
     
     
     // === debug ===

@@ -71,6 +71,15 @@ class PEBinary {
             return section_names;
         }
 
+        //get sections 
+        std::vector<LIEF::PE::Section> get_sections() {
+            std::vector<LIEF::PE::Section> sections;
+            for (const LIEF::PE::Section& section : pe->sections()) {
+                sections.push_back(section);
+            }
+            return sections;
+        }
+
         // get array of empty section names
         // real_name (in python) : _rn = lambda s: ensure_str(getattr(s, "real_name", s.name)).split("\0")[0]
         std::vector<std::string> get_empty_name_sections() {
@@ -97,22 +106,6 @@ class PEBinary {
             return offset_section_hex_string;
         }
 
-        std::string execute_command(const std::string& command) {
-            std::array<char, 128> buffer;
-            std::string result;
-            std::cout << "Command: " << command << std::endl;
-            std::shared_ptr<FILE> pipe(popen(command.c_str(), "r"), pclose);
-            if (!pipe) {
-                throw std::runtime_error("popen() failed!");
-            }
-            while (!feof(pipe.get())) {
-                if (fgets(buffer.data(), 128, pipe.get()) != nullptr) {
-                    result += buffer.data();
-                }
-            }
-            std::cout << "Result: " << result << std::endl;
-            return result;
-        }
 
 
         // get array of real section names (of long sections names)
@@ -232,4 +225,22 @@ class PEBinary {
             return PEBinaryModifiers::set_checksum(pe, checksum);
         }
 
+
+    private:
+        std::string execute_command(const std::string& command) {
+            std::array<char, 128> buffer;
+            std::string result;
+            std::cout << "Command: " << command << std::endl;
+            std::shared_ptr<FILE> pipe(popen(command.c_str(), "r"), pclose);
+            if (!pipe) {
+                throw std::runtime_error("popen() failed!");
+            }
+            while (!feof(pipe.get())) {
+                if (fgets(buffer.data(), 128, pipe.get()) != nullptr) {
+                    result += buffer.data();
+                }
+            }
+            std::cout << "Result: " << result << std::endl;
+            return result;
+        }
 };
