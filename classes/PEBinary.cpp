@@ -4,6 +4,8 @@
 #include <iomanip>
 #include <fstream>
 
+#include "PEBinaryModifiers.cpp"
+
 // Helper function to convert std::u16string to std::string (UTF-8)
 std::string u16string_to_utf8(const std::u16string& u16str) {
     // copy the u16string to a string
@@ -198,6 +200,36 @@ class PEBinary {
         std::vector<std::string> get_standard_section_names() {
             #include "../definitions/standard_section_names.hpp"
             return standard_section_names;
+        }
+
+        
+
+        // modifiers:
+
+        void add_section( const std::string& name, const std::vector<uint8_t>& data, uint32_t characteristics) {
+            // static call to add_section in PEBinaryModifiers
+            PEBinaryModifiers::add_section(pe, name, data, characteristics);
+        }
+
+        void rename_section( const std::string &section_name, const std::string &new_name) {
+            PEBinaryModifiers::rename_section(pe, section_name, new_name);
+        }
+
+        bool append_to_section( const std::string& section_name, const std::vector<uint8_t>& data){
+            return PEBinaryModifiers::append_to_section(pe, section_name, data);
+        }
+
+        void move_entrypoint_to_new_section( const std::string& name, uint32_t characteristics=0, const std::vector<uint8_t>& pre_data={}, const std::vector<uint8_t>& post_data={}) {
+            
+            PEBinaryModifiers::move_entrypoint_to_new_section(pe, name, characteristics, pre_data, post_data); // default = 5 pre mid instructions
+        }
+
+        void move_entrypoint_to_slack_space( const std::string& section_name, size_t nb_pre_instructions, size_t nb_mid_instructions) {
+            PEBinaryModifiers::move_entrypoint_to_slack_space(pe, section_name, nb_pre_instructions, nb_mid_instructions);
+        }
+
+        bool set_checksum( uint32_t checksum) {
+            return PEBinaryModifiers::set_checksum(pe, checksum);
         }
 
 };
