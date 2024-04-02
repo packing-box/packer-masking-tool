@@ -19,7 +19,7 @@ PARAMS = $(CXXFLAGS)
 
 DIR_CLASSES = classes
 # Executable name
-EXEC = packer_masker
+EXEC = packer_masker.elf
 
 all: $(EXEC)
 
