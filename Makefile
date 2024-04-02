@@ -1,28 +1,44 @@
+# Compiler
+CXX = g++
 
-PARAMS = -I/usr/local/LIEF/include/LIEF -L/usr/local/LIEF/lib -lLIEF
-
-all: main.cpp
-	g++ main.cpp -o main.o $(PARAMS)
-
-run_test:
-	./main.o SimpleTest.exe
-	wine new_binary.exe
-
+# File to test
 FILE=upx_7z.exe
 #FILE=SimpleTest.exe
-run_alterations:
-	g++ alterations.cpp -o alterations.o $(PARAMS)
-	./alterations.o $(FILE)
+
+
+# Compiler flags
+CXXFLAGS = -Wall -std=c++11
+
+# LIEF library
+LIEF = -I/usr/local/LIEF/include/LIEF -L/usr/local/LIEF/lib -lLIEF
+PARAMS = $(CXXFLAGS)
+
+
+
+
+
+DIR_CLASSES = classes
+# Executable name
+EXEC = packer_masker
+
+all: $(EXEC)
+
+$(EXEC): main.o PEBinary.o PEBinaryModifiers.o
+	$(CXX) $(PARAMS) -o $(EXEC) PEBinary.o main.o PEBinaryModifiers.o $(LIEF)
+	rm -f *.o
+
+main.o: main.cpp $(DIR_CLASSES)/PEBinary.hpp
+	$(CXX) $(PARAMS) -c main.cpp 
+
+PEBinary.o: $(DIR_CLASSES)/PEBinary.cpp $(DIR_CLASSES)/PEBinary.hpp 
+	$(CXX) $(PARAMS) -c $(DIR_CLASSES)/PEBinary.cpp $(LIEF)
+
+PEBinaryModifiers.o: $(DIR_CLASSES)/PEBinaryModifiers.cpp $(DIR_CLASSES)/PEBinaryModifiers.hpp
+	$(CXX) $(PARAMS) -c $(DIR_CLASSES)/PEBinaryModifiers.cpp $(LIEF)
+
+run_test: $(EXEC)
+	./$(EXEC) $(FILE)
 	wine modified_$(FILE)
 
-run_all:
-	g++ main.cpp -o main.o $(PARAMS)
-	./main.o SimpleTest.exe
-	wine new_binary.exe
-
-test_alterations:
-	g++ alterations.cpp -o alterations.o $(PARAMS)
-	./alterations.o win-snap.exe
-
 clean:
-	rm -f *.o
+	rm -f *.o $(EXEC) 

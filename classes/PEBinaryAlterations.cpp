@@ -1,4 +1,4 @@
-#include "PEBinary.cpp"
+#include "PEBinary.hpp"
 
 //#include "../modifiers/rename_section.cpp"
 #include "Utilities.cpp"
@@ -107,12 +107,18 @@ private:
         from.insert(from.end(), common_packer_section_names.begin(), common_packer_section_names.end());
         std::string from_section_name = Utilities::select_section_name(from, {}, section_names);
 
+        // -- Abort if from_section_name is empty --
+        if (from_section_name.empty()) {
+            // this can happen if no common packer section is found
+            return;
+        }
+
         // -- Get the permissions of the section --
         std::string from_section_permissions = binary.get_permission_of_section(from_section_name);
 
         // -- Get the section matching the permissions --
         std::vector<std::string> sections_with_permissions;
-        for (const std::pair<std::string, std::string>& section_permission : typical_section_permissions) {
+        for (const std::pair<const std::string, std::string>& section_permission : typical_section_permissions) {
             if (section_permission.second == from_section_permissions) {
                 sections_with_permissions.push_back(section_permission.first);
             }
