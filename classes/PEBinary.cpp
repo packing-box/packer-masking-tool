@@ -6,6 +6,8 @@
 
 #include "PEBinaryModifiers.cpp"
 
+#include <cmath> // For std::round
+
 // Helper function to convert std::u16string to std::string (UTF-8)
 std::string u16string_to_utf8(const std::u16string& u16str) {
     // copy the u16string to a string
@@ -60,6 +62,34 @@ class PEBinary {
 
         std::unique_ptr<LIEF::PE::Binary>& get() {
             return pe;
+        }
+
+        // get optional header
+        LIEF::PE::OptionalHeader& get_optional_header() {
+            return pe->optional_header();
+        }
+
+        // get size of the binary
+        uint64_t get_size() {
+            return pe->original_size(); // ?? correct ?
+        }
+
+        //get api imports
+        std::vector<std::pair<std::string, std::string>> get_api_imports() {
+            std::vector<std::pair<std::string, std::string>> api_imports;
+            for (const LIEF::PE::Import& import : pe->imports()) {
+                for (const LIEF::PE::ImportEntry& entry : import.entries()) {
+                    api_imports.push_back({import.name(), entry.name()});
+                }
+            }
+            return api_imports;
+        }
+
+        // Assuming 'exe' is a PE binary object from the LIEF library
+        size_t calculate_size(double ratio = 0.1, size_t blocksize = 512) {
+            // Calculate the scaled size and round to nearest blocksize
+            size_t scaled_size = static_cast<size_t>(std::round((pe->original_size() * ratio) / blocksize + 0.5)) * blocksize;
+            return scaled_size;
         }
 
         // get array of section names
@@ -195,13 +225,22 @@ class PEBinary {
             return standard_section_names;
         }
 
+        std::vector<std::pair<std::string, std::string>> get_common_api_imports() {
+            #include "../definitions/common_api_imports.hpp"
+            return common_api_imports;
+        }
+
         
 
         // modifiers:
 
-        void add_section( const std::string& name, const std::vector<uint8_t>& data, uint32_t characteristics) {
+        void add_API_to_IAT(const std::pair<std::string, std::string>& api_import) {
+            PEBinaryModifiers::add_API_to_IAT(pe, api_import.first, api_import.second);
+        }
+
+        void add_section( const std::string& name, const std::vector<uint8_t>& data, uint32_t characteristics=0, LIEF::PE::PE_SECTION_TYPES type=LIEF::PE::PE_SECTION_TYPES::TEXT) {
             // static call to add_section in PEBinaryModifiers
-            PEBinaryModifiers::add_section(pe, name, data, characteristics);
+            PEBinaryModifiers::add_section(pe, name, data, characteristics, type);
         }
 
         void rename_section( const std::string &section_name, const std::string &new_name) {

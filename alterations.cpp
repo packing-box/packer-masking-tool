@@ -10,36 +10,22 @@
 // #include "alterations/rename_packer_sections.cpp"; PEBinary binary = PEBinary(argv[1]); rename_packer_sections(binary);
 
 #include "classes/PEBinary.cpp"
-#include "utils/select_section_name.cpp"
-#include "utils/generate_random_bytes.cpp"
-
-void fill_sections_with_zeros(PEBinary& binary){
-    // Description: Stretch sections with zeros from their raw size to their virtual size
-    size_t size_to_fill = 0;
-    for(LIEF::PE::Section& section : binary.get_sections()){
-        size_to_fill = section.virtual_size() - section.sizeof_raw_data();
-        if(size_to_fill > 0){
-            //debug print
-            std::cout << "Filling section " << section.name() << " with " << size_to_fill << " zeros" << std::endl;
-            binary.append_to_section(section.name(), std::vector<uint8_t>(size_to_fill, 0));
-        }else{
-            std::cout << "Section " << section.name() << " is already filled (size_to_fill =" << size_to_fill << ")" << std::endl;
-        }
-    }
-}
-
+#include "classes/Utilities.cpp"
 
 /*
 
-fill_sections_with_zeros:
+add_20_common_api_imports:
   attack: evasion
-  description: Stretch sections with zeros from their raw size to their virtual size
-  fail: continue
-  loop: sections
+  description: Add common API imports to the IAT, avoiding duplicates
+  fail: warn
+  loop: 20
+  apply: false
   result:
-    PE: append_to_section(
-            section,
-            repeatn(randbytes(3), section['virtual_size'] - section['raw_data_size'])
+    PE: add_API_to_IAT(
+            select(
+                random_lst=COMMON_API_IMPORTS,
+                exclusions=pe['api_imports']
+            )
         )
 */
 
@@ -70,25 +56,34 @@ int main( int argc, char **argv) {
     std::cout << "[BEFORE] Section EP: " << binary.get_entrypoint_section()->name() << std::endl;
 
     // === debug ===
-    std::cout << "Section names: " << std::endl;
-    for(auto& section_name : binary.get_section_names()){
-        std::cout << section_name  << " : " << binary.get_permission_of_section(section_name) << std::endl;
+    std::cout << "============================" << std::endl;
+    std::cout << "import table: " << std::endl;
+    std::vector<std::pair<std::string, std::string>> imports_api = binary.get_api_imports();
+    std::cout << "size: " << imports_api.size() << std::endl;
+    for(std::pair<std::string, std::string>& import : imports_api){
+        std::cout << import.first << " : " << import.second << std::endl;
     }
+    std::cout << "============================" << std::endl;
 
 
-    fill_sections_with_zeros(binary);
+    //add_20_common_api_imports(binary);
     
     
     // === debug ===
     std::cout << "[AFTER] Section EP: " << binary.get_entrypoint_section()->name() << std::endl;
 
-    std::cout << "Section names: " << std::endl;
-    for(auto& section_name : binary.get_section_names()){
-        std::cout << section_name  << " : " << binary.get_permission_of_section(section_name) << std::endl;
+    std::cout << "============================" << std::endl;
+    std::cout << "import table: " << std::endl;
+    std::vector<std::pair<std::string, std::string>> imports = binary.get_api_imports();
+    std::cout << "size: " << imports.size() << std::endl;
+    for(std::pair<std::string, std::string>& import : imports){
+        std::cout << import.first << " : " << import.second << std::endl;
     }
+    std::cout << "============================" << std::endl;
 
     // Save the modified PE file
     LIEF::PE::Builder builder(*binary.get());
+    builder.patch_imports(true);
     builder.build();
     builder.write("modified_"+std::string(argv[1]));
 

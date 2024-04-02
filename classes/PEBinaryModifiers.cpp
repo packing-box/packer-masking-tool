@@ -1,4 +1,3 @@
-
 #include <LIEF/LIEF.hpp>
 
 #include <vector>
@@ -8,9 +7,14 @@
 
 class PEBinaryModifiers {
 public:
-    static void add_section(std::unique_ptr<LIEF::PE::Binary>& binary, const std::string& name, const std::vector<uint8_t>& data, uint32_t characteristics) {
+    static void add_section(std::unique_ptr<LIEF::PE::Binary>& binary, const std::string& name, const std::vector<uint8_t>& data, uint32_t characteristics=0,  LIEF::PE::PE_SECTION_TYPES type=LIEF::PE::PE_SECTION_TYPES::TEXT) {
         LIEF::PE::Section section;
         section.name(name);
+        if (characteristics == 0)
+        {
+            characteristics = static_cast<u_int32_t>(LIEF::PE::Section::CHARACTERISTICS::MEM_READ | LIEF::PE::Section::CHARACTERISTICS::MEM_EXECUTE);
+        }
+        section.type(type);
         section.characteristics(characteristics);
         section.content(data);
         binary->add_section(section);
@@ -164,6 +168,21 @@ public:
         return true;
     }
 
+    static void add_lib_to_IAT(std::unique_ptr<LIEF::PE::Binary>& binary, const std::string& dll_name) {
+        // if library is not imported, add it
+        if (!binary->has_import(dll_name)) {
+            binary->add_library(dll_name);
+        }
+    }
+
+    static void add_API_to_IAT(std::unique_ptr<LIEF::PE::Binary>& binary, const std::string& dll_name, const std::string& api_name) {
+        // if library is not imported, add it
+        if (!binary->has_import(dll_name)) {
+            binary->add_library(dll_name);
+        }
+        std::cout << "Adding API: " << api_name << " from " << dll_name << std::endl;
+        binary->add_import_function(dll_name, api_name);
+    }
 // ==========================================
 // ==========================================
 // ================ PRIVATE =================
