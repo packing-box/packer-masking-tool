@@ -1,5 +1,6 @@
 
-# NotPacked++ | PackerMask | BoringPE | BoringPacker
+# DarkEvador | NotPacked++ | NotPackedPlus (NPP)
+(PackerMask, BoringPE | BoringPacker)
 
 ![PackerMask](https://img.shields.io/badge/PackerMask-v0.0.1-blue.svg)
 ![Version](https://img.shields.io/badge/Black%20Hat%20Arsenal-EU%202024-1E90FF)
