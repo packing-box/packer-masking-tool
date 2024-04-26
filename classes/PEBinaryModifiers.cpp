@@ -113,11 +113,15 @@ void PEBinaryModifiers::move_entrypoint_to_new_section(std::unique_ptr<LIEF::PE:
         characteristics = static_cast<u_int32_t>(LIEF::PE::Section::CHARACTERISTICS::MEM_READ | LIEF::PE::Section::CHARACTERISTICS::MEM_EXECUTE); 
     }
     auto& optional_header = binary->optional_header();
-    uint64_t original_entrypoint = optional_header.addressof_entrypoint() + optional_header.imagebase();
+    uint64_t original_entrypoint = optional_header.addressof_entrypoint();// + optional_header.imagebase();
 
-    bool is_64bits = binary->optional_header().magic() == LIEF::PE::PE_TYPE::PE32_PLUS;
+    //bool is_64bits = binary->optional_header().magic() == LIEF::PE::PE_TYPE::PE32_PLUS;
 
-    std::vector<uint8_t> entrypoint_data = get_trampoline_instructions(original_entrypoint, nb_pre_instructions, nb_mid_instructions ,is_64bits);
+    std::vector<uint8_t> entrypoint_data = {0xE9}; // JMP rel32
+    for (int i = 0; i < 4; ++i) {
+        entrypoint_data.push_back((original_entrypoint >> (i*8)) & 0xFF);
+    }
+    //get_trampoline_instructions(original_entrypoint, nb_pre_instructions, nb_mid_instructions ,is_64bits);
 
     // Combine pre_data, trampoline, and post_data
     std::vector<uint8_t> section_data = pre_data;
@@ -130,6 +134,28 @@ void PEBinaryModifiers::move_entrypoint_to_new_section(std::unique_ptr<LIEF::PE:
     new_section.characteristics(characteristics);
     new_section.content(section_data);
     binary->add_section(new_section);
+
+    //uint64_t offset_to_jmp = section_data.size() - post_data.size();
+
+    LIEF::PE::Section* created_section = binary->get_section(name);
+    if (created_section == nullptr) {
+        std::cerr << "Failed to create section \"" << name << "\"" << std::endl;
+        return;
+    }
+    //uint64_t offset_to_entrypoint = original_entrypoint - (created_section->virtual_address() + offset_to_jmp);
+    int32_t offset = original_entrypoint - (created_section->virtual_address() + pre_data.size() + entrypoint_data.size());
+
+    
+    std::vector<uint8_t> new_entrypoint_data = {0xE9}; // JMP rel32
+    for (int i = 0; i < 4; ++i) {
+        new_entrypoint_data.push_back((offset >> (i*8)) & 0xFF);
+    }
+
+    std::vector<uint8_t> new_section_data = pre_data;
+    new_section_data.insert(new_section_data.end(), new_entrypoint_data.begin(), new_entrypoint_data.end());
+    new_section_data.insert(new_section_data.end(), post_data.begin(), post_data.end());
+
+    created_section->content(new_section_data);
 
     // Update the entry point to point to the new section (pre_data + trampoline + post_data)
     optional_header.addressof_entrypoint(binary->get_section(name)->virtual_address() + pre_data.size());

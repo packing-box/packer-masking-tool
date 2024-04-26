@@ -78,7 +78,7 @@ public:
     }
 
 private:
-    static void _rename_one_packer_section(PEBinary& binary){
+    static void _w_perm_rename_one_packer_section(PEBinary& binary){
 
         // -- Dictionary of typical section's permissions --
         std::map<std::string, std::string> typical_section_permissions = {
@@ -128,6 +128,42 @@ private:
         }
         // -- Select new names for the sections -- {".text", ".data", ".rdata", ".bss", ".tls", ".debug"}
         std::string to_section_name = Utilities::select_section_name(sections_with_permissions, standard_section_names,{}, section_names);
+
+        // -- Rename the sections --
+        binary.rename_section(from_section_name, to_section_name);
+    }
+
+    static void _rename_one_packer_section(PEBinary& binary){
+
+        // -- Get the section names --
+        std::vector<std::string> section_names = binary.get_section_names();
+        std::vector<std::string> empty_name_sections = binary.get_empty_name_sections();
+        std::string entrypoint_section = binary.get_entrypoint_section()->name();
+        //std::vector<std::string> real_section_names = binary.get_real_section_names();
+        
+
+        // -- Get the common packer/standard section names --
+        std::vector<std::string> common_packer_section_names = binary.get_common_packer_section_names();
+        std::vector<std::string> standard_section_names = binary.get_standard_section_names();
+
+        // -- Select sections to rename --
+        std::vector<std::string> from = {Utilities::select_section_name({entrypoint_section},{}, common_packer_section_names)};
+        from.insert(from.end(), empty_name_sections.begin(), empty_name_sections.end());
+        from.insert(from.end(), common_packer_section_names.begin(), common_packer_section_names.end());
+        std::string from_section_name = Utilities::select_section_name(from, {}, section_names);
+
+        // -- Abort if from_section_name is empty --
+        if (from_section_name.empty()) {
+            // this can happen if no common packer section is found
+            return;
+        }
+
+        // -- Get the permissions of the section --
+        //std::string from_section_permissions = binary.get_permission_of_section(from_section_name);
+
+        // -- Get the section matching the permissions --
+        // -- Select new names for the sections -- {".text", ".data", ".rdata", ".bss", ".tls", ".debug"}
+        std::string to_section_name = Utilities::select_section_name({".text", ".data", ".rdata", ".bss", ".tls", ".debug"}, standard_section_names,{}, section_names);
 
         // -- Rename the sections --
         binary.rename_section(from_section_name, to_section_name);

@@ -20,11 +20,11 @@ int main( int argc, char **argv) {
 
     // =======================================
     // apply alterations
-    PEBinaryAlterations::add_20_common_api_imports(binary);
-    PEBinaryAlterations::add_low_entropy_text_section(binary);
-    PEBinaryAlterations::fill_sections_with_zeros(binary);
+    //PEBinaryAlterations::add_20_common_api_imports(binary);
+    //PEBinaryAlterations::add_low_entropy_text_section(binary);
+    //PEBinaryAlterations::fill_sections_with_zeros(binary);
     PEBinaryAlterations::move_entrypoint_to_new_low_entropy_section(binary);
-    PEBinaryAlterations::rename_packer_sections(binary);
+    //PEBinaryAlterations::rename_packer_sections(binary);
     
     
     
