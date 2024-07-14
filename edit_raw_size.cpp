@@ -172,6 +172,9 @@ int _main(int argc, char* argv[]) {
 
 int main(int argc, char* argv[]) {
     if (argc < 3) {
+        // description
+        std::cerr << "This program updates the raw size of PE file sections (those having a zero section size) to a specified percentage of the maximum allowed to it functional." << std::endl;
+        // usage
         std::cerr << "Usage: " << argv[0] << " <input PE file path> [--size <raw size percentage as a float 0.1-0.9>]" << std::endl;
         return 1;
     }
