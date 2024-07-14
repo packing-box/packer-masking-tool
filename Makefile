@@ -40,5 +40,12 @@ run_test: $(EXEC)
 	./$(EXEC) $(FILE)
 	wine modified_$(FILE)
 
+raw_size_editor: edit_raw_size.cpp
+	$(CXX) $(PARAMS) -o raw_size_editor edit_raw_size.cpp
+
+reset_7z:
+	rm upx_7z.exe
+	cp upx_7z.exe.bak upx_7z.exe
+
 clean:
 	rm -f *.o $(EXEC) 
