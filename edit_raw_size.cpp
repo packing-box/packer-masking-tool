@@ -112,7 +112,7 @@ void addOverlay(const char* filePath, size_t overlaySize) {
     std::cout << GREEN << "Overlay added successfully!" << RESET << std::endl;
 }
 
-size_t updateSectionHeaders(const char* filePath, float rawSizePercentage = 0.8) {
+size_t updateSectionHeaders(const char* filePath, float rawSizePercentage = 0.8, bool modeMaxFileSize = false) {
     std::ifstream file(filePath, std::ios::in | std::ios::binary);
     if (!file.is_open()) {
         std::cerr << "Could not open file!" << std::endl;
@@ -140,21 +140,27 @@ size_t updateSectionHeaders(const char* filePath, float rawSizePercentage = 0.8)
 
     file.close();
     bool updated = false;
-    /*int sum_raw_size = 0;
-    for (auto& section : sectionHeaders) {
-        sum_raw_size += section.SizeOfRawData;
-    }*/
+    size_t sum_file_size = 0;
+    if(modeMaxFileSize){
+        for (auto& section : sectionHeaders) {
+            sum_file_size += section.SizeOfRawData;
+        }
+    }
+    
     size_t sum_raw_size = 0;
     //std::cout << GREEN << "[+] Sum of raw sizes: " << sum_raw_size << " ; 0x" << std::hex << sum_raw_size << RESET << std::endl;
     for (auto& section : sectionHeaders) {
         //std::cout << "Section " << section.Name << " raw size: " << section.SizeOfRawData << std::endl;
         // if raw size of section is 0, set it to 80% of the maximum raw size allowed
         if (section.SizeOfRawData <= 0) {
-            // convert to uint32_t  and give value : sum_raw_size * rawSizePercentage
-            section.SizeOfRawData = section.Misc.VirtualSize + (section.Misc.VirtualSize * rawSizePercentage);
+            if(modeMaxFileSize){
+                section.SizeOfRawData = sum_file_size * rawSizePercentage;
+            }else{
+                // convert to uint32_t 
+                section.SizeOfRawData = section.Misc.VirtualSize + (section.Misc.VirtualSize * rawSizePercentage);
+            }
             sum_raw_size += section.SizeOfRawData;
             // print in hex
-            std::cout << "[+] Section " << section.Name << " raw size updated to " << "(" << section.SizeOfRawData << ")" <<  std::endl;
             std::cout << "[+] Section " << section.Name << " raw size updated to 0x" << std::hex << section.SizeOfRawData <<  std::endl;
             updated = true;
         }
@@ -186,24 +192,29 @@ size_t updateSectionHeaders(const char* filePath, float rawSizePercentage = 0.8)
 int main(int argc, char* argv[]) {
     if (argc < 2) {
         // description
-        std::cerr << "This program updates the raw size of PE file sections (those having a zero section size) to a specified percentage of the maximum allowed to it functional." << std::endl;
+        std::cerr << "      Description : is program updates the raw size of PE file sections (those having a zero section size) to a specified percentage of the maximum allowed to it functional." << std::endl << std::endl;
         // usage
         std::cerr << "Usage: " << argv[0] << " <input PE file path> [--size <raw size percentage as a float 0.1-0.9>]" << std::endl;
-        std::cerr << "    --size <raw size percentage as a float 0.1-0.9> : Set the raw size percentage of the sections to the specified value." << std::endl;
+        std::cerr << "    --size <raw size percentage as a float 0.1-0.9> : Set the raw size percentage of the sections virtual size to the specified value." << std::endl;
         std::cerr << "    --no-overlay : Do not add an overlay to the file." << std::endl;
+        std::cerr << "    --max-file-size : Set the raw size of the sections to the maximum allowed to remain functional (Note that no overlay will be added)." << std::endl;
         return 1;
     }
 
     const char* inputFilePath = argv[1];
     float rawSizePercentage = 0.01; // Default value
+    bool modeMaxFileSize = false;
 
     for (int i = 2; i < argc; ++i) {
         if (std::strcmp(argv[i], "--size") == 0 && i + 1 < argc) {
             rawSizePercentage = std::strtof(argv[++i], nullptr);
+        }else if (std::strcmp(argv[i], "--max-file-size") == 0) {
+            modeMaxFileSize = true;
         }
+        
     }
 
-    size_t sum_added_raw_size = updateSectionHeaders(inputFilePath, rawSizePercentage);
+    size_t sum_added_raw_size = updateSectionHeaders(inputFilePath, rawSizePercentage, modeMaxFileSize);
 
     for (int i = 2; i < argc; ++i) {
         if (std::strcmp(argv[i], "--no-overlay") == 0) {
@@ -212,7 +223,9 @@ int main(int argc, char* argv[]) {
             return 0;
         }
     }
-    addOverlay(inputFilePath, sum_added_raw_size);
+    if(!modeMaxFileSize){
+        addOverlay(inputFilePath, sum_added_raw_size);
+    }
 
     return 0;
 }
