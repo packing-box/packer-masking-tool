@@ -112,11 +112,12 @@ void addOverlay(const char* filePath, size_t overlaySize) {
     std::cout << GREEN << "Overlay added successfully!" << RESET << std::endl;
 }
 
-void updateSectionHeaders(const char* filePath, float rawSizePercentage = 0.8) {
+size_t updateSectionHeaders(const char* filePath, float rawSizePercentage = 0.8) {
     std::ifstream file(filePath, std::ios::in | std::ios::binary);
     if (!file.is_open()) {
         std::cerr << "Could not open file!" << std::endl;
-        return;
+        exit(1);
+        return 0;
     }
 
     DOSHeader dosHeader;
@@ -150,7 +151,7 @@ void updateSectionHeaders(const char* filePath, float rawSizePercentage = 0.8) {
         // if raw size of section is 0, set it to 80% of the maximum raw size allowed
         if (section.SizeOfRawData <= 0) {
             // convert to uint32_t  and give value : sum_raw_size * rawSizePercentage
-            section.SizeOfRawData = static_cast<uint32_t>(section.Misc.VirtualSize + (section.Misc.VirtualSize * rawSizePercentage));
+            section.SizeOfRawData = section.Misc.VirtualSize + (section.Misc.VirtualSize * rawSizePercentage);
             sum_raw_size += section.SizeOfRawData;
             // print in hex
             std::cout << "[+] Section " << section.Name << " raw size updated to " << "(" << section.SizeOfRawData << ")" <<  std::endl;
@@ -162,7 +163,8 @@ void updateSectionHeaders(const char* filePath, float rawSizePercentage = 0.8) {
     std::ofstream outFile(filePath, std::ios::in | std::ios::out | std::ios::binary);
     if (!outFile.is_open()) {
         std::cerr << "Could not open file for writing!" << std::endl;
-        return;
+        exit(1);
+        return 0;
     }
 
     
@@ -176,8 +178,7 @@ void updateSectionHeaders(const char* filePath, float rawSizePercentage = 0.8) {
     }
     outFile.close();
 
-    // add overlay
-    addOverlay(filePath, sum_raw_size);
+    return sum_raw_size;
     
 }
 
@@ -188,11 +189,13 @@ int main(int argc, char* argv[]) {
         std::cerr << "This program updates the raw size of PE file sections (those having a zero section size) to a specified percentage of the maximum allowed to it functional." << std::endl;
         // usage
         std::cerr << "Usage: " << argv[0] << " <input PE file path> [--size <raw size percentage as a float 0.1-0.9>]" << std::endl;
+        std::cerr << "    --size <raw size percentage as a float 0.1-0.9> : Set the raw size percentage of the sections to the specified value." << std::endl;
+        std::cerr << "    --no-overlay : Do not add an overlay to the file." << std::endl;
         return 1;
     }
 
     const char* inputFilePath = argv[1];
-    float rawSizePercentage = 0.2; // Default value
+    float rawSizePercentage = 0.01; // Default value
 
     for (int i = 2; i < argc; ++i) {
         if (std::strcmp(argv[i], "--size") == 0 && i + 1 < argc) {
@@ -200,7 +203,16 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    updateSectionHeaders(inputFilePath, rawSizePercentage);
+    size_t sum_added_raw_size = updateSectionHeaders(inputFilePath, rawSizePercentage);
+
+    for (int i = 2; i < argc; ++i) {
+        if (std::strcmp(argv[i], "--no-overlay") == 0) {
+            std::cout << RED << "No overlay added." << RESET << std::endl;
+            std::cout << RED << "You should increase the file size by: 0x" << sum_added_raw_size << RESET << std::endl;
+            return 0;
+        }
+    }
+    addOverlay(inputFilePath, sum_added_raw_size);
 
     return 0;
 }
