@@ -8,6 +8,17 @@
 
 
 void help(const char* program_name){
+    // Logo art
+
+std::cerr << R"(    _   __      __  ____             __            __          
+   / | / ____  / /_/ __ \____ ______/ /_____  ____/ / __    __ 
+  /  |/ / __ \/ __/ /_/ / __ `/ ___/ //_/ _ \/ __  __/ /___/ /_
+ / /|  / /_/ / /_/ ____/ /_/ / /__/ ,< /  __/ /_/ /_  __/_  __/
+/_/ |_/\____/\__/_/    \__,_/\___/_/|_|\___/\__,_/ /_/   /_/   
+                                                               
+
+)";
+
     // Description
     std::cerr << "Description: This program applies some alterations to a PE file. \n Note that when no alteration is specified ALL of them will be applied, if at least one is specified only selected ones will be applied" << std::endl;
     std::cerr << std::endl;
