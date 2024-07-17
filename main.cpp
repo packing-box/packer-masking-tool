@@ -6,6 +6,8 @@
 #include "classes/PEBinary.hpp"
 #include "classes/PEBinaryAlterations.cpp"
 
+#define ITALIC "\033[3m"
+#define RESET "\033[0m"
 
 void help(const char* program_name){
     // Logo art
@@ -18,6 +20,12 @@ std::cerr << R"(    _   __      __  ____             __            __
                                                                
 
 )";
+    // author, copy right, version
+    std::cerr << ITALIC << "Author" << RESET << "       :   Jaber RAMHANI" << std::endl;
+    //std::cerr << ITALIC << "Contribution" << RESET << ": .." << std::endl;
+    std::cerr << ITALIC << "Version" << RESET << "      :   0.1" << std::endl;
+    std::cerr << ITALIC << "Copyright" << RESET << "    :   © 2024 A. D'Hondt" << std::endl;
+    std::cerr << std::endl;
 
     // Description
     std::cerr << "Description: This program applies some alterations to a PE file. \n Note that when no alteration is specified ALL of them will be applied, if at least one is specified only selected ones will be applied" << std::endl;
