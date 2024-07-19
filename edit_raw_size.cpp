@@ -191,31 +191,45 @@ size_t updateSectionHeaders(const char* filePath, float rawSizePercentage = 0.8,
     }
     outFile.close();
 
-    return sum_raw_size;
+    size_t sum_added_raw_size = sum_raw_size - sum_file_size;
+    if(sum_added_raw_size < 0){
+        sum_added_raw_size = 0;
+    }
+    return sum_added_raw_size;
     
 }
 
+void help(const char* programName) {
+    // description
+    std::cerr << "      Description : is program updates the raw size of PE file sections (those having a zero section size) to a specified percentage of the maximum allowed to it functional." << std::endl << std::endl;
+    // usage
+    std::cerr << "Usage: " << programName << " <input PE file path> [--size <raw size percentage as a float 0.1-0.9>]" << std::endl;
+    std::cerr << "    --size <raw size percentage as a float 0.1-0.9> : Set the raw size percentage of the sections virtual size to the specified value." << std::endl;
+    std::cerr << "    --no-overlay : Do not add an overlay to the file." << std::endl;
+    std::cerr << "    --all-sections : Update the raw size of all sections to the specified percentage (default: only sections with a raw size of 0)." << std::endl;
+    std::cerr << "    --max-file-size : Set the raw size of the sections to the maximum allowed to remain functional (Note that no overlay will be added)." << std::endl;
+    // --help
+    std::cerr << "    --help : Display this help message." << std::endl;
+}
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
-        // description
-        std::cerr << "      Description : is program updates the raw size of PE file sections (those having a zero section size) to a specified percentage of the maximum allowed to it functional." << std::endl << std::endl;
-        // usage
-        std::cerr << "Usage: " << argv[0] << " <input PE file path> [--size <raw size percentage as a float 0.1-0.9>]" << std::endl;
-        std::cerr << "    --size <raw size percentage as a float 0.1-0.9> : Set the raw size percentage of the sections virtual size to the specified value." << std::endl;
-        std::cerr << "    --no-overlay : Do not add an overlay to the file." << std::endl;
-        std::cerr << "    --all-sections : Update the raw size of all sections to the specified percentage (default: only sections with a raw size of 0)." << std::endl;
-        std::cerr << "    --max-file-size : Set the raw size of the sections to the maximum allowed to remain functional (Note that no overlay will be added)." << std::endl;
+        help(argv[0]);
         return 1;
     }
 
     const char* inputFilePath = argv[1];
-    float rawSizePercentage = 0.01; // Default value
+    float rawSizePercentage = 0.0; // Default value (0% more than vsize)
     bool modeMaxFileSize = false;
     bool modeAllSections = false;
 
     for (int i = 2; i < argc; ++i) {
-        if (std::strcmp(argv[i], "--size") == 0 && i + 1 < argc) {
+        if (std::strcmp(argv[i], "--help") == 0)
+        {
+            help(argv[0]);
+            return 0;
+        }
+        else if (std::strcmp(argv[i], "--size") == 0 && i + 1 < argc) {
             rawSizePercentage = std::strtof(argv[++i], nullptr);
         }else if (std::strcmp(argv[i], "--max-file-size") == 0) {
             modeMaxFileSize = true;

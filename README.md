@@ -1,6 +1,15 @@
 
 # NotPacked++
 
+```
+    _   __      __  ____             __            __          
+   / | / ____  / /_/ __ \____ ______/ /_____  ____/ / __    __ 
+  /  |/ / __ \/ __/ /_/ / __ `/ ___/ //_/ _ \/ __  __/ /___/ /_
+ / /|  / /_/ / /_/ ____/ /_/ / /__/ ,< /  __/ /_/ /_  __/_  __/
+/_/ |_/\____/\__/_/    \__,_/\___/_/|_|\___/\__,_/ /_/   /_/   
+                                                               
+```
+
 ![NotPacked++](https://img.shields.io/badge/NotPacked++-v0.0.1-blue.svg)
 ![Version](https://img.shields.io/badge/Black%20Hat%20Arsenal-EU%202024-1E90FF)
 ![License](https://img.shields.io/badge/license-GNU-red.svg)
