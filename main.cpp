@@ -25,6 +25,7 @@ std::cerr << R"(    _   __      __  ____             __            __
     //std::cerr << ITALIC << "Contribution" << RESET << ": .." << std::endl;
     std::cerr << ITALIC << "Version" << RESET << "      :   0.1" << std::endl;
     std::cerr << ITALIC << "Copyright" << RESET << "    :   © 2024 A. D'Hondt" << std::endl;
+    std::cerr << ITALIC << "License" << RESET << "      :   GNU General Public License v3.0" << std::endl;
     std::cerr << std::endl;
 
     // Description
