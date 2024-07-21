@@ -6,7 +6,6 @@
 <div align="center">
 
 ![NotPacked++](https://img.shields.io/badge/NotPacked++-v0.1-blue.svg)
-![Version](https://img.shields.io/badge/Black%20Hat%20Arsenal-EU%202024-1E90FF)
 ![License](https://img.shields.io/badge/license-GNU-red.svg)
 ![Status](https://img.shields.io/badge/status-bêta-red.svg)
 
