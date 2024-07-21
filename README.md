@@ -3,12 +3,14 @@
 <h1 align="center">NotPacked++</h1>
 <h3 align="center">Adversarial tool for breaking static detection of packed executable</h3>
 
-&nbsp;
+<div align="center">
 
 ![NotPacked++](https://img.shields.io/badge/NotPacked++-v0.1-blue.svg)
 ![Version](https://img.shields.io/badge/Black%20Hat%20Arsenal-EU%202024-1E90FF)
 ![License](https://img.shields.io/badge/license-GNU-red.svg)
 ![Status](https://img.shields.io/badge/status-bêta-red.svg)
+
+</div>
 
 ---
 
