@@ -3,6 +3,8 @@
 <h1 align="center">NotPacked++</h1>
 <h3 align="center">Adversarial tool for breaking static detection of packed executable</h3>
 
+&nbsp;
+
 ![NotPacked++](https://img.shields.io/badge/NotPacked++-v0.1-blue.svg)
 ![Version](https://img.shields.io/badge/Black%20Hat%20Arsenal-EU%202024-1E90FF)
 ![License](https://img.shields.io/badge/license-GNU-red.svg)
@@ -25,7 +27,7 @@ In the current version, the tool focuses on the PE file format and the most comm
 /_/ |_/\____/\__/_/    \__,_/\___/_/|_|\___/\__,_/ /_/   /_/   
                                                                
 
-Author       :   Jaber RAMHANI
+Author       :   J. RAMHANI
 Version      :   0.1
 Copyright    :   © 2024 A. D'Hondt
 License      :   GNU General Public License v3.0
