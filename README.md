@@ -1,7 +1,5 @@
 
-<center>
-<img src="logo.webp" width="150" height="150" style="border-radius:50%;">
-</center>
+<p align="center"><img src="logo.webp" width="150" height="150" style="border-radius:50%;"></p>
 <h1 align="center">NotPacked++</h1>
 <h3 align="center">Adversarial tool for breaking static detection of packed executable</h3>
 
