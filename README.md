@@ -62,7 +62,6 @@ make
 ### Dependencies
 
 - LIEF
-- objdump / cut / grep 
 
 ### Installation of LIEF
 > It may ask for ROOT privileges to install the dependencies
