@@ -1,5 +1,8 @@
 *.exe
+*.exe.bak
 *.o
 *.zip
 .vscode
 *.elf
+*.cpp
+raw_size_editor

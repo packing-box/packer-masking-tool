@@ -56,9 +56,5 @@ ENV DEBIAN_FRONTEND=dialog
 
 # Command to run when starting the container
 #CMD ["/bin/bash"]
-# gcc lief_test.c -I/usr/local/LIEF/include/LIEF -L/usr/local/LIEF/lib -lLIEF -o pe_parser
 
 
-# Commands:
-
-# gcc main.c -I/usr/local/LIEF/include/LIEF -L/usr/local/LIEF/lib -lLIEF -o main.o
