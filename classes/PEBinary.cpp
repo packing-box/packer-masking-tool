@@ -133,7 +133,26 @@ std::string PEBinary::offset_to_hex(uint64_t offset){
     return offset_section_hex_string;
 }
 
+// decode section name
+std::string PEBinary::decode_section_name(const LIEF::PE::Binary& binary, const std::string& encoded_name, std::string file_path ) {
+    if (encoded_name[0] == '/') {
+        std::ifstream file(file_path, std::ios::binary);
+        if (!file) {
+            std::cerr << "Failed to open file: " << file_path << std::endl;
+            return encoded_name;
+        }
+        int offset = std::stoi(encoded_name.substr(1));
+        uint32_t string_table_offset = binary.header().pointerto_symbol_table() + binary.header().numberof_symbols() * 18;
+        uint32_t real_name_offset = string_table_offset + offset;
+        file.seekg(real_name_offset, std::ios::beg);
 
+        std::string real_name;
+        std::getline(file, real_name, '\0');
+        return real_name;
+    } else {
+        return encoded_name;
+    }
+}
 
 // get array of real section names (of long sections names)
 std::vector<std::string> PEBinary::get_real_section_names() {
@@ -143,25 +162,9 @@ std::vector<std::string> PEBinary::get_real_section_names() {
     for (const LIEF::PE::Section& section : pe->sections()) {
         std::string name = section.name();
         // if name contains a slash "/" get the content after "/4" (for example, get 4)
-        if (name.find("/") != std::string::npos) {
-            std::cout << "Name: " << name << std::endl;
-            std::string real_name = name;
-            // get the offset in the string table (could not make it work .. so I use command line tool)
-            //std::string ascii_decimal = name.substr(name.find("/") + 1);
-            //const int offset = std::stoi(ascii_decimal); // 4 will be converted to 4
-
-            std::string offset_section_hex_string = offset_to_hex(section.offset());
-            
-            // ======= Execute command 'objdump -h' to get the real names ====
-            std::string command = "objdump -h " + this->filename + " | grep -P '\\d+.*\\s" + offset_section_hex_string + "\\s+' | cut -d ' ' -f4";
-            
-            real_name = execute_command(command);
-
-            // get the real name from the string table
-            real_name_sections.push_back(real_name);
-        }else{
-            real_name_sections.push_back(name);
-        }
+        //  and get the real name from the string table at that offset
+        real_name_sections.push_back(decode_section_name(*pe, name, this->filename));
+        
     }
     return real_name_sections;
 
@@ -222,6 +225,11 @@ std::vector<std::string> PEBinary::get_standard_section_names() {
     return standard_section_names;
 }
 
+std::vector<std::vector<u_int8_t>> PEBinary::get_dead_code_bytes() {
+    #include "../definitions/dead_code_bytes.hpp"
+    return dead_code_bytes;
+}
+
 std::vector<std::pair<std::string, std::string>> PEBinary::get_common_api_imports() {
     #include "../definitions/common_api_imports.hpp"
     return common_api_imports;
@@ -250,11 +258,11 @@ bool PEBinary::append_to_section( const std::string& section_name, const std::ve
 
 void PEBinary::move_entrypoint_to_new_section( const std::string& name, uint32_t characteristics, const std::vector<uint8_t>& pre_data, const std::vector<uint8_t>& post_data) {
     
-    PEBinaryModifiers::move_entrypoint_to_new_section(pe, name, characteristics, pre_data, post_data); // default = 5 pre mid instructions
+    PEBinaryModifiers::move_entrypoint_to_new_section(pe, name, characteristics, pre_data, post_data); // default = 5 dead code instructions
 }
 
-void PEBinary::move_entrypoint_to_slack_space( const std::string& section_name, size_t nb_pre_instructions, size_t nb_mid_instructions) {
-    PEBinaryModifiers::move_entrypoint_to_slack_space(pe, section_name, nb_pre_instructions, nb_mid_instructions);
+void PEBinary::move_entrypoint_to_slack_space( const std::string& section_name) {
+    PEBinaryModifiers::move_entrypoint_to_slack_space(pe, section_name, 0);
 }
 
 bool PEBinary::set_checksum( uint32_t checksum) {

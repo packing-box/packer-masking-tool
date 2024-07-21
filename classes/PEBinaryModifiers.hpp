@@ -27,12 +27,12 @@ public:
     static void move_entrypoint_to_new_section(std::unique_ptr<LIEF::PE::Binary>& binary, 
                                         const std::string& name, uint32_t characteristics=0,
                                         const std::vector<uint8_t>& pre_data={}, const std::vector<uint8_t>& post_data={},
-                                        size_t nb_pre_instructions=5, size_t nb_mid_instructions=5
+                                        size_t nb_deadcode=128
                                         );
 
     // Function to move the entry point to slack_space of given section
     static void move_entrypoint_to_slack_space(std::unique_ptr<LIEF::PE::Binary>& binary, const std::string& section_name,
-                                        size_t nb_pre_instructions=5, size_t nb_mid_instructions=5);
+                                        size_t nb_deadcode=5);
 
     static bool set_checksum(std::unique_ptr<LIEF::PE::Binary>& binary, uint32_t checksum);
 
@@ -47,11 +47,12 @@ public:
 private:
     static bool _append_to_section(std::unique_ptr<LIEF::PE::Binary>& binary, const std::string& section_name, const std::vector<uint8_t>& data_to_append);
 
+
     // Helper function to add dummy instructions
-    static std::vector<uint8_t> get_dummy_instructions(size_t count);
+    static std::vector<uint8_t> get_dead_code_instructions(size_t count);
 
 
-    static std::vector<uint8_t> get_trampoline_instructions(uint64_t original_entrypoint, size_t nb_pre_instructions=5, size_t nb_mid_instructions=5, bool is_64bits=false);
+    static std::vector<uint8_t> get_trampoline_instructions(uint64_t original_entrypoint, size_t nb_deadcode=128);
 
 
 };

@@ -98,6 +98,10 @@ struct SectionHeader {
 
 
 void addOverlay(const char* filePath, size_t overlaySize) {
+    if(overlaySize == 0){
+        std::cout << RED << "No overlay to add (0)." << RESET << std::endl;
+        return;
+    }
     std::ofstream outFile(filePath, std::ios::out | std::ios::binary | std::ios::app);
     if (!outFile.is_open()) {
         std::cerr << "Could not open file for adding overlay!" << std::endl;
@@ -109,7 +113,7 @@ void addOverlay(const char* filePath, size_t overlaySize) {
     outFile.write(buffer.data(), buffer.size());
     outFile.close();
 
-    std::cout << GREEN << "Overlay added successfully!" << RESET << std::endl;
+    std::cout << GREEN << "(0x" << overlaySize << ") Overlay added successfully!" << RESET << std::endl;
 }
 
 size_t updateSectionHeaders(const char* filePath, float rawSizePercentage = 0.8, bool modeMaxFileSize = false, bool modeAllSections = false) {
@@ -141,11 +145,11 @@ size_t updateSectionHeaders(const char* filePath, float rawSizePercentage = 0.8,
     file.close();
     bool updated = false;
     size_t sum_file_size = 0;
-    if(modeMaxFileSize){
-        for (auto& section : sectionHeaders) {
-            sum_file_size += section.SizeOfRawData;
-        }
+    for (auto& section : sectionHeaders) {
+        sum_file_size += section.SizeOfRawData;
     }
+
+    std::cout << "[+] Sum of section raw sizes: " << std::hex << sum_file_size << std::endl;
     
     size_t sum_raw_size = 0;
     //std::cout << GREEN << "[+] Sum of raw sizes: " << sum_raw_size << " ; 0x" << std::hex << sum_raw_size << RESET << std::endl;
@@ -157,7 +161,8 @@ size_t updateSectionHeaders(const char* filePath, float rawSizePercentage = 0.8,
                 section.SizeOfRawData = sum_file_size * rawSizePercentage;
             }else{
                 // convert to uint32_t 
-                section.SizeOfRawData = section.Misc.VirtualSize + (section.Misc.VirtualSize * rawSizePercentage);
+                section.SizeOfRawData = static_cast<uint32_t>(section.Misc.VirtualSize + section.Misc.VirtualSize * rawSizePercentage);
+                //section.SizeOfRawData = section.Misc.VirtualSize + (section.Misc.VirtualSize * rawSizePercentage);
             }
             sum_raw_size += section.SizeOfRawData;
             // print in hex
@@ -191,7 +196,12 @@ size_t updateSectionHeaders(const char* filePath, float rawSizePercentage = 0.8,
     }
     outFile.close();
 
-    size_t sum_added_raw_size = sum_raw_size - sum_file_size;
+    // get header size
+    size_t header_size = dosHeader.e_lfanew + sizeof(PEHeader) + peHeader.SizeOfOptionalHeader + (sizeof(SectionHeader) * numberOfSections);
+    std::cout << "[+] Header size: 0x" << std::hex << header_size << std::endl;
+    // Calculate the sum of the added raw size
+    //return sum_raw_size;
+    size_t sum_added_raw_size = sum_raw_size - sum_file_size;// - header_size;
     if(sum_added_raw_size < 0){
         sum_added_raw_size = 0;
     }

@@ -28,19 +28,22 @@ public:
     std::string get_permission_of_section(std::string section_name);
     std::vector<std::string> get_common_packer_section_names();
     std::vector<std::string> get_standard_section_names();
+    static std::vector<std::vector<u_int8_t>> get_dead_code_bytes();
     std::vector<std::pair<std::string, std::string>> get_common_api_imports();
     void add_API_to_IAT(const std::pair<std::string, std::string>& api_import);
     void add_section(const std::string& name, const std::vector<uint8_t>& data, uint32_t characteristics=0, LIEF::PE::PE_SECTION_TYPES type=LIEF::PE::PE_SECTION_TYPES::TEXT);
     void rename_section(const std::string &section_name, const std::string &new_name);
     bool append_to_section(const std::string& section_name, const std::vector<uint8_t>& data);
     void move_entrypoint_to_new_section(const std::string& name, uint32_t characteristics=0, const std::vector<uint8_t>& pre_data={}, const std::vector<uint8_t>& post_data={});
-    void move_entrypoint_to_slack_space(const std::string& section_name, size_t nb_pre_instructions, size_t nb_mid_instructions);
+    void move_entrypoint_to_slack_space(const std::string& section_name);
     bool set_checksum(uint32_t checksum);
 
 private:
     std::string filename;
     std::unique_ptr<LIEF::PE::Binary> pe;
     std::string execute_command(const std::string& command);
+    std::string decode_section_name(const LIEF::PE::Binary& binary, const std::string& encoded_name, std::string filename);
+
 };
 
 #endif // PEBINARY_HPP

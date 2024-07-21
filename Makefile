@@ -19,7 +19,7 @@ PARAMS = $(CXXFLAGS)
 
 DIR_CLASSES = classes
 # Executable name
-EXEC = packer_masker.elf
+EXEC = notpacked++
 
 all: $(EXEC)
 
@@ -37,15 +37,13 @@ PEBinaryModifiers.o: $(DIR_CLASSES)/PEBinaryModifiers.cpp $(DIR_CLASSES)/PEBinar
 	$(CXX) $(PARAMS) -c $(DIR_CLASSES)/PEBinaryModifiers.cpp $(LIEF)
 
 run_test: $(EXEC)
-	./$(EXEC) $(FILE)
-	wine modified_$(FILE)
+	rm -f output_$(FILE)
+	rm -f $(FILE) && cp $(FILE).bak $(FILE) && sha256sum $(FILE)
+	./$(EXEC) $(FILE) && sha256sum output_$(FILE)
+	wine output_$(FILE)
 
 raw_size_editor: edit_raw_size.cpp
 	$(CXX) $(PARAMS) -o raw_size_editor edit_raw_size.cpp
-
-reset_7z:
-	rm upx_7z.exe
-	cp upx_7z.exe.bak upx_7z.exe
 
 clean:
 	rm -f *.o $(EXEC) 

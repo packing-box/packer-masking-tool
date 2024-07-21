@@ -8,11 +8,16 @@
 
 #define ITALIC "\033[3m"
 #define RESET "\033[0m"
+// colors
+#define RED "\033[31m"
+#define GREEN "\033[32m"
+#define YELLOW "\033[33m"
+#define BLUE "\033[34m"
+#define GRAY "\033[90m"
 
-void help(const char* program_name){
+void header(){
     // Logo art
-
-std::cerr << R"(    _   __      __  ____             __            __          
+    std::cout << R"(    _   __      __  ____             __            __          
    / | / ____  / /_/ __ \____ ______/ /_____  ____/ / __    __ 
   /  |/ / __ \/ __/ /_/ / __ `/ ___/ //_/ _ \/ __  __/ /___/ /_
  / /|  / /_/ / /_/ ____/ /_/ / /__/ ,< /  __/ /_/ /_  __/_  __/
@@ -21,13 +26,17 @@ std::cerr << R"(    _   __      __  ____             __            __
 
 )";
     // author, copy right, version
-    std::cerr << ITALIC << "Author" << RESET << "       :   Jaber RAMHANI" << std::endl;
-    //std::cerr << ITALIC << "Contribution" << RESET << ": .." << std::endl;
-    std::cerr << ITALIC << "Version" << RESET << "      :   0.1" << std::endl;
-    std::cerr << ITALIC << "Copyright" << RESET << "    :   © 2024 A. D'Hondt" << std::endl;
-    std::cerr << ITALIC << "License" << RESET << "      :   GNU General Public License v3.0" << std::endl;
-    std::cerr << std::endl;
+    std::cout << GRAY << ITALIC << " Author       :   J. RAMHANI" << std::endl;
+    std::cout <<  " Contributor  :   A. D'Hondt" << std::endl;
+    std::cout <<  " Version      :   0.1" << std::endl;
+    std::cout <<  " Copyright    :   © 2024" << std::endl;
+    std::cout <<  " License      :   GNU General Public License v3.0" << std::endl;
+    std::cout << GRAY << "======================================================" << RESET << std::endl;
+    std::cout << std::endl;
+}
 
+void help(const char* program_name){
+    
     // Description
     std::cerr << "Description: This program applies some alterations to a PE file. \n Note that when no alteration is specified ALL of them will be applied, if at least one is specified only selected ones will be applied" << std::endl;
     std::cerr << std::endl;
@@ -40,20 +49,28 @@ std::cerr << R"(    _   __      __  ____             __            __
     std::cerr << std::endl;
 
     // possible options
-    std::cerr << "Other options:" << std::endl;
+    std::cerr << "Other options: (by default all of them applies)" << std::endl;
     std::cerr << "    --add-api         : Add 20 common API imports to the PE file." << std::endl;
-    std::cerr << "    --low-entropy     : Add a low entropy text section to the PE file." << std::endl;
-    std::cerr << "    --fill-zero       : Fill sections with zeros from their raw size to their virtual size." << std::endl;
+    //std::cerr << "    --low-entropy     : Add a low entropy text section to the PE file." << std::endl;
+    //std::cerr << "    --fill-zero       : Fill sections with zeros from their raw size to their virtual size." << std::endl;
     std::cerr << "    --move-ep         : Move the entry point to a new low entropy section." << std::endl;
-    std::cerr << "    --rename-packer   : Rename packer sections." << std::endl;
+    std::cerr << "    --rename-sections : Rename packer sections to standard section names." << std::endl;
     std::cerr << std::endl;
 }
 
 
 int main( int argc, char **argv) {
+    header();
     if(argc < 2){
         help(argv[0]);
         return 1;
+    }
+
+    for(int i = 0; i < argc; i++){
+        if (std::strcmp(argv[i], "--help") == 0) {
+            help(argv[0]);
+            return 1;
+        }
     }
 
     // intialize output file name
@@ -66,10 +83,7 @@ int main( int argc, char **argv) {
     // =======================================
     bool at_least_one_alteration = false;
     for(int i = 0; i < argc; i++){
-        if (std::strcmp(argv[i], "--help") == 0) {
-            help(argv[0]);
-            return 1;
-        } else if (std::strcmp(argv[i], "-o") == 0)
+        if (std::strcmp(argv[i], "-o") == 0)
         {
             if(i+1 < argc){
                 output_file_name = std::string(argv[i+1]);
@@ -80,19 +94,17 @@ int main( int argc, char **argv) {
         {
             at_least_one_alteration = true;
             PEBinaryAlterations::add_20_common_api_imports(binary);
-        } else if (std::strcmp(argv[i], "--low-entropy") == 0)
-        {
-            at_least_one_alteration = true;
-            PEBinaryAlterations::add_low_entropy_text_section(binary);
-        } else if (std::strcmp(argv[i], "--fill-zero") == 0)
+        } 
+        /*else if (std::strcmp(argv[i], "--fill-zero") == 0)
         {
             at_least_one_alteration = true;
             PEBinaryAlterations::fill_sections_with_zeros(binary);
-        } else if (std::strcmp(argv[i], "--move-ep") == 0)
+        } */
+        else if (std::strcmp(argv[i], "--move-ep") == 0)
         {
             at_least_one_alteration = true;
             PEBinaryAlterations::move_entrypoint_to_new_low_entropy_section(binary);
-        } else if (std::strcmp(argv[i], "--rename-packer") == 0)
+        } else if (std::strcmp(argv[i], "--rename-sections") == 0)
         {
             at_least_one_alteration = true;
             PEBinaryAlterations::rename_packer_sections(binary);
@@ -103,7 +115,7 @@ int main( int argc, char **argv) {
     if(!at_least_one_alteration){
         // ==== apply all alterations ======
         //PEBinaryAlterations::add_20_common_api_imports(binary);
-        PEBinaryAlterations::add_low_entropy_text_section(binary);
+        //PEBinaryAlterations::add_low_entropy_text_section(binary);
         //PEBinaryAlterations::fill_sections_with_zeros(binary);
         PEBinaryAlterations::move_entrypoint_to_new_low_entropy_section(binary);
         PEBinaryAlterations::rename_packer_sections(binary);
@@ -120,7 +132,8 @@ int main( int argc, char **argv) {
     builder.patch_imports(true);
     builder.build();
     builder.write(output_file_name);
-
+    // green color
+    std::cout << "\033[32m" << "[SUCCESS] \033[0m File saved as: " << output_file_name << std::endl;
 
     return 0;
 }
