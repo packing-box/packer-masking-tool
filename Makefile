@@ -42,8 +42,8 @@ run_test: $(EXEC)
 	./$(EXEC) $(FILE) && sha256sum output_$(FILE)
 	wine output_$(FILE)
 
-raw_size_editor: edit_raw_size.cpp
-	$(CXX) $(PARAMS) -o raw_size_editor edit_raw_size.cpp
+raw_size_editor: $(SOURCE_DIR)/edit_raw_size.cpp
+	$(CXX) $(PARAMS) -o raw_size_editor $(SOURCE_DIR)/edit_raw_size.cpp
 
 clean:
 	rm -f *.o $(EXEC) 
