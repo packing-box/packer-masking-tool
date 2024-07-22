@@ -5,8 +5,9 @@
 
 <div align="center">
 
-![NotPacked++](https://img.shields.io/badge/NotPacked++-v0.1-blue.svg)
-![License](https://img.shields.io/badge/license-GNU-red.svg)
+[![NotPacked++](https://img.shields.io/badge/NotPacked++-v0.1-blue.svg)](https://github.com/packing-box/packer-masking-tool)
+[![Read The Docs](https://readthedocs.org/projects/docker-packing-box/badge/?version=latest)](http://packer-masking-tool.readthedocs.io/en/latest/?badge=latest)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-orange.svg)](https://www.gnu.org/licenses/gpl-3.0)
 ![Status](https://img.shields.io/badge/status-bêta-red.svg)
 
 </div>
