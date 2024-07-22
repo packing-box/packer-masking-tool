@@ -1,4 +1,4 @@
-# Contributing to Packing-Box
+# Contributing to NotPacked++
 We want to make contributing to this project as easy and transparent as possible.
 
 ## Our Development Process

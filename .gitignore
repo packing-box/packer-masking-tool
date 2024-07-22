@@ -6,3 +6,4 @@
 *.elf
 *.cpp
 raw_size_editor
+exe/*

@@ -152,22 +152,31 @@ size_t updateSectionHeaders(const char* filePath, float rawSizePercentage = 0.8,
     std::cout << "[+] Sum of section raw sizes: " << std::hex << sum_file_size << std::endl;
     
     size_t sum_raw_size = 0;
+    size_t section_size_tmp = 0;
     //std::cout << GREEN << "[+] Sum of raw sizes: " << sum_raw_size << " ; 0x" << std::hex << sum_raw_size << RESET << std::endl;
     for (auto& section : sectionHeaders) {
-        //std::cout << "Section " << section.Name << " raw size: " << section.SizeOfRawData << std::endl;
+        section_size_tmp = section.SizeOfRawData;
+        std::cout << "Section " << section.Name << " raw size: " << section.SizeOfRawData << std::endl;
         // if raw size of section is 0, set it to 80% of the maximum raw size allowed
         if (section.SizeOfRawData <= 0) {
+            std::cout << "[+] Raw size percentage: " << rawSizePercentage << std::endl;
             if(modeMaxFileSize){
-                section.SizeOfRawData = sum_file_size * rawSizePercentage;
+                section.SizeOfRawData = static_cast<uint32_t>(sum_file_size * 0.99);
             }else{
                 // convert to uint32_t 
                 section.SizeOfRawData = static_cast<uint32_t>(section.Misc.VirtualSize + section.Misc.VirtualSize * rawSizePercentage);
                 //section.SizeOfRawData = section.Misc.VirtualSize + (section.Misc.VirtualSize * rawSizePercentage);
             }
+            // prinf modeMaxFileSize and new size
+            std::cout << "[+] modeMaxFileSize: " << modeMaxFileSize << std::endl;
             sum_raw_size += section.SizeOfRawData;
             // print in hex
-            std::cout << "[+] Section " << section.Name << " raw size updated to 0x" << std::hex << section.SizeOfRawData <<  std::endl;
-            updated = true;
+            if(section_size_tmp == section.SizeOfRawData){
+                std::cout <<  RED << "[+] Section " << section.Name << " raw size unchanged : 0x" << std::hex << section.SizeOfRawData <<  std::endl;
+            }else{
+                std::cout << "[+] Section " << section.Name << " raw size updated to 0x" << std::hex << section.SizeOfRawData <<  std::endl;
+                updated = true;
+            }
         }else if(modeAllSections){
             size_t rawSize = size_t(section.SizeOfRawData);
             section.SizeOfRawData = section.Misc.VirtualSize + (section.Misc.VirtualSize * rawSizePercentage);
@@ -197,10 +206,10 @@ size_t updateSectionHeaders(const char* filePath, float rawSizePercentage = 0.8,
     outFile.close();
 
     // get header size
-    size_t header_size = dosHeader.e_lfanew + sizeof(PEHeader) + peHeader.SizeOfOptionalHeader + (sizeof(SectionHeader) * numberOfSections);
-    std::cout << "[+] Header size: 0x" << std::hex << header_size << std::endl;
+    //size_t header_size = dosHeader.e_lfanew + sizeof(PEHeader) + peHeader.SizeOfOptionalHeader + (sizeof(SectionHeader) * numberOfSections);
+    //std::cout << "[+] Header size: 0x" << std::hex << header_size << std::endl;
+    
     // Calculate the sum of the added raw size
-    //return sum_raw_size;
     size_t sum_added_raw_size = sum_raw_size - sum_file_size;// - header_size;
     if(sum_added_raw_size < 0){
         sum_added_raw_size = 0;
@@ -213,8 +222,8 @@ void help(const char* programName) {
     // description
     std::cerr << "      Description : is program updates the raw size of PE file sections (those having a zero section size) to a specified percentage of the maximum allowed to it functional." << std::endl << std::endl;
     // usage
-    std::cerr << "Usage: " << programName << " <input PE file path> [--size <raw size percentage as a float 0.1-0.9>]" << std::endl;
-    std::cerr << "    --size <raw size percentage as a float 0.1-0.9> : Set the raw size percentage of the sections virtual size to the specified value." << std::endl;
+    std::cerr << "Usage: " << programName << " <input PE file path> [<options>]" << std::endl;
+    std::cerr << "    --size <0.0-1.0> : Set the raw size percentage of the sections virtual size to the specified value (percentage of the virtual to be added to the virtual size)." << std::endl;
     std::cerr << "    --no-overlay : Do not add an overlay to the file." << std::endl;
     std::cerr << "    --all-sections : Update the raw size of all sections to the specified percentage (default: only sections with a raw size of 0)." << std::endl;
     std::cerr << "    --max-file-size : Set the raw size of the sections to the maximum allowed to remain functional (Note that no overlay will be added)." << std::endl;
@@ -241,12 +250,17 @@ int main(int argc, char* argv[]) {
         }
         else if (std::strcmp(argv[i], "--size") == 0 && i + 1 < argc) {
             rawSizePercentage = std::strtof(argv[++i], nullptr);
-        }else if (std::strcmp(argv[i], "--max-file-size") == 0) {
+        }else if (std::strcmp(argv[i], "--max-file-size") == 0 && i + 1 < argc) {
             modeMaxFileSize = true;
         }else if (std::strcmp(argv[i], "--all-sections") == 0) {
             modeAllSections = true;
         }
         
+    }
+
+    if(rawSizePercentage < 0.0 || rawSizePercentage > 1.0){
+        std::cerr << "Invalid raw size percentage value! (0.0-1.0)" << std::endl;
+        return 1;
     }
 
     size_t sum_added_raw_size = updateSectionHeaders(inputFilePath, rawSizePercentage, modeMaxFileSize, modeAllSections);
