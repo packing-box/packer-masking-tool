@@ -42,12 +42,15 @@ This will apply all alterations to the input file.
 
 ### Use case 2: Selected alterations
 `notpacked++ input.exe --add-api --fill-zero`
+
 This will only apply the following :
+
 - `--add-api`: Add 20 common API imports
 - `--fill-zero`: Fill sections with zeros from their raw size to their virtual size.
 
 ### Use case 3: Output file
 `notpacked++ input.exe -o output.exe`
+
 > Note: If no output file is specified, the output file will be named `output_<inputFilename>.exe`
 
 ### Soon to come

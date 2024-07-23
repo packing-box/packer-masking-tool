@@ -37,6 +37,11 @@ public:
     void move_entrypoint_to_new_section(const std::string& name, uint32_t characteristics=0, const std::vector<uint8_t>& pre_data={}, const std::vector<uint8_t>& post_data={});
     void move_entrypoint_to_slack_space(const std::string& section_name);
     bool set_checksum(uint32_t checksum);
+    void update_section_permissions(
+                                    const std::vector<uint8_t>& pre_data={},
+                                    const std::vector<uint8_t>& post_data={},
+                                    size_t nb_deadcode=128
+                                    );
 
 private:
     std::string filename;

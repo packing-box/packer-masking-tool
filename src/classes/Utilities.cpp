@@ -66,4 +66,20 @@ public:
 
         return "";
     }
+
+    static std::vector<uint8_t> to_little_endian_bytes_array(uint64_t va, bool is_64 = false) {
+        size_t byte_count = is_64 ? 8 : 4;
+        std::vector<uint8_t> bytes(byte_count);
+        for (size_t i = 0; i < byte_count; ++i) {
+            bytes[i] = static_cast<uint8_t>((va >> (i * 8)) & 0xFF);
+        }
+        return bytes;
+    }
+
+    // append vectors to vector
+    static std::vector<uint8_t> append_vectors(std::vector<uint8_t> a, std::vector<uint8_t> b) {
+        a.insert(a.end(), b.begin(), b.end());
+        return a;
+    }
+
 };

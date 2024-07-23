@@ -55,6 +55,9 @@ void help(const char* program_name){
     //std::cerr << "    --fill-zero       : Fill sections with zeros from their raw size to their virtual size." << std::endl;
     std::cerr << "    --move-ep         : Move the entry point to a new low entropy section." << std::endl;
     std::cerr << "    --rename-sections : Rename packer sections to standard section names." << std::endl;
+    
+    std::cerr << "    --permissions      : Update the permissions of all sections to standard ones (rwx/rw-/..) and move the entry point to a new section." << std::endl;
+
     std::cerr << std::endl;
 }
 
@@ -109,16 +112,23 @@ int main( int argc, char **argv) {
             at_least_one_alteration = true;
             PEBinaryAlterations::rename_packer_sections(binary);
         }
+        else if (std::strcmp(argv[i], "--permissions") == 0)
+        {
+            at_least_one_alteration = true;
+            PEBinaryAlterations::update_section_permissions_and_move_ep(binary);
+        }
         
     }
 
     if(!at_least_one_alteration){
         // ==== apply all alterations ======
-        //PEBinaryAlterations::add_20_common_api_imports(binary);
+        //PEBinaryAlterations::add_20_common_api_imports(binary); // TODO: fix (keep API common)
         //PEBinaryAlterations::add_low_entropy_text_section(binary);
         //PEBinaryAlterations::fill_sections_with_zeros(binary);
-        PEBinaryAlterations::move_entrypoint_to_new_low_entropy_section(binary);
-        PEBinaryAlterations::rename_packer_sections(binary);
+        //PEBinaryAlterations::move_entrypoint_to_new_low_entropy_section(binary);
+        //PEBinaryAlterations::rename_packer_sections(binary);
+
+        PEBinaryAlterations::update_section_permissions_and_move_ep(binary);
     }
     
     

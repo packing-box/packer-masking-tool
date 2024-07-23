@@ -3,9 +3,11 @@
 #include <vector>
 #include <random>
 #include <iostream>
-
+#include <unordered_set>
 #include "PEBinaryModifiers.hpp"
 #include "PEBinary.hpp"
+#include "Utilities.cpp"
+#include "../definitions/common_section_permissions.hpp"
 
 
 // class PEBinaryModifiers implementations
@@ -149,6 +151,54 @@ void PEBinaryModifiers::move_entrypoint_to_new_section(std::unique_ptr<LIEF::PE:
     optional_header.addressof_entrypoint(binary->get_section(name)->virtual_address() + pre_data.size());
 }
 
+
+void PEBinaryModifiers::move_ep_to_new_section(std::unique_ptr<LIEF::PE::Binary>& binary, 
+                                    const std::string& name,
+                                    uint32_t characteristics,
+                                    const std::vector<uint8_t>& pre_data, const std::vector<uint8_t>& post_data,
+                                    size_t nb_deadcode,
+                                    uint32_t offset_jmp,
+                                    bool use_jump
+                                    ) {
+    if(characteristics == 0){
+        characteristics = static_cast<u_int32_t>(LIEF::PE::Section::CHARACTERISTICS::MEM_READ | LIEF::PE::Section::CHARACTERISTICS::MEM_EXECUTE); 
+    }
+
+    std::vector<uint8_t> entrypoint_data = get_trampoline_instructions(0, nb_deadcode, use_jump);
+
+    // Combine pre_data, trampoline, and post_data
+    std::vector<uint8_t> section_data = pre_data;
+    section_data.insert(section_data.end(), entrypoint_data.begin(), entrypoint_data.end());
+    section_data.insert(section_data.end(), post_data.begin(), post_data.end());
+
+    add_section(binary, name, section_data, characteristics);
+
+    LIEF::PE::Section* created_section = binary->get_section(name);
+    if (created_section == nullptr) {
+        std::cerr << "Failed to create section \"" << name << "\"" << std::endl;
+        return;
+    }
+
+    if(offset_jmp == 0){
+        offset_jmp = binary->optional_header().addressof_entrypoint() - (created_section->virtual_address() + pre_data.size() + entrypoint_data.size());
+    }
+
+    // replace last 4 bytes of the trampoline with the offset
+    for (int i = 0; i < 4; ++i) {
+        entrypoint_data[entrypoint_data.size()-4+i] = (offset_jmp >> (i*8)) & 0xFF;
+    }
+    
+    std::vector<uint8_t> new_section_data = pre_data;
+    new_section_data.insert(new_section_data.end(), entrypoint_data.begin(), entrypoint_data.end());
+    new_section_data.insert(new_section_data.end(), post_data.begin(), post_data.end());
+
+    created_section->content(new_section_data);
+
+    // Update the entry point to point to the new section (pre_data + trampoline + post_data)
+    binary->optional_header().addressof_entrypoint(binary->get_section(name)->virtual_address() + pre_data.size());
+}
+
+
 // Function to move the entry point to slack_space of given section
 void PEBinaryModifiers::move_entrypoint_to_slack_space(std::unique_ptr<LIEF::PE::Binary>& binary, const std::string& section_name,
                                     size_t nb_deadcode) {
@@ -266,7 +316,7 @@ std::vector<uint8_t> PEBinaryModifiers::get_dead_code_instructions(size_t count)
 }
 
 
-std::vector<uint8_t> PEBinaryModifiers::get_trampoline_instructions(uint64_t offset, size_t nb_deadcode) {
+std::vector<uint8_t> PEBinaryModifiers::get_trampoline_instructions(uint64_t offset, size_t nb_deadcode, bool use_jump) {
     std::vector<uint8_t> trampoline;
     trampoline.reserve(5+(nb_deadcode*2)); // Reserve some space to avoid frequent reallocations
 
@@ -295,11 +345,287 @@ std::vector<uint8_t> PEBinaryModifiers::get_trampoline_instructions(uint64_t off
 
     // Trampoline logic to jump back to the original entry point
     // in little endian
-    trampoline.push_back(0xE9);// JMP rel32
-    for (int i = 0; i < 4; ++i) {
-        trampoline.push_back((offset >> (i*8)) & 0xFF);
+    std::vector<uint8_t> offset_bytes = Utilities::to_little_endian_bytes_array(offset, false);
+    if (use_jump) {
+        trampoline.push_back(0xE9); // JMP rel32
+        trampoline.insert(trampoline.end(), offset_bytes.begin(), offset_bytes.end());
+    } else {
+        trampoline.push_back(0xE8); // CALL rel32
+        trampoline.insert(trampoline.end(), offset_bytes.begin(), offset_bytes.end());
     }
 
 
     return trampoline;
 }
+
+
+// Function to move the entry point to a new section
+void PEBinaryModifiers::update_section_permissions(std::unique_ptr<LIEF::PE::Binary>& binary, 
+                                    const std::vector<uint8_t>& pre_data, const std::vector<uint8_t>& post_data,
+                                    size_t nb_deadcode
+                                    ) {
+    uint32_t characteristics = static_cast<u_int32_t>(LIEF::PE::Section::CHARACTERISTICS::MEM_READ | LIEF::PE::Section::CHARACTERISTICS::MEM_EXECUTE | LIEF::PE::Section::CHARACTERISTICS::CNT_CODE); 
+    std::string name = ".text";
+    uint64_t oep = binary->optional_header().addressof_entrypoint();
+    
+    bool is_64_bit = binary->header().machine() == LIEF::PE::Header::MACHINE_TYPES::AMD64;
+
+
+    std::vector<uint8_t> bytes_to_add;
+    uint32_t virtual_protect_address = get_virtual_protect_address(*binary);
+
+
+    std::vector<std::pair<LIEF::PE::Section*, uint32_t>>  section_edited_permissions = rename_section_and_update_permissions(*binary);
+    for (std::pair<LIEF::PE::Section*, uint32_t> section_tuple : section_edited_permissions) {
+        LIEF::PE::Section* section = section_tuple.first;
+        uint32_t original_characteristic = section_tuple.second;
+        std::vector<uint8_t>  add_bytes = call_virtualProtect(
+            virtual_protect_address, section->virtual_address(), section->virtual_size(),
+            characteristic_to_vp_flag(original_characteristic), is_64_bit
+        );
+        bytes_to_add.insert(bytes_to_add.end(), add_bytes.begin(), add_bytes.end());
+    }
+
+    // Adding a new section
+    std::vector<uint8_t> pre_data_trampoline = Utilities::append_vectors( Utilities::append_vectors(get_code_for_image_base(0), bytes_to_add) , trampoline_jmp(0));
+    std::vector<uint8_t> deadcode_obfuscation(10, 0x90);  // TODO: replace with actual deadcode obfuscation
+
+    uint32_t offset_to_second_ep = pre_data_trampoline.size() + deadcode_obfuscation.size() + trampoline_jmp(0).size();
+    auto obfuscated_trampoline = Utilities::append_vectors(deadcode_obfuscation, trampoline_call(-offset_to_second_ep));
+
+
+    add_section(binary, name, Utilities::append_vectors(pre_data_trampoline, obfuscated_trampoline), characteristics);
+
+    // Ensure the section is correctly added
+    LIEF::PE::Section* added_section = binary->get_section(name);
+    if (added_section == nullptr) {
+        std::cerr << "Failed to create section \"" << name << "\"" << std::endl;
+        return;
+    }
+    uint32_t jmp_code_RVA = added_section->virtual_address() + pre_data_trampoline.size() + obfuscated_trampoline.size();
+
+    uint32_t offset = oep - (added_section->virtual_address() + pre_data_trampoline.size());
+    pre_data_trampoline = Utilities::append_vectors( Utilities::append_vectors(get_code_for_image_base(jmp_code_RVA), bytes_to_add), trampoline_jmp(offset));
+
+    added_section->content( Utilities::append_vectors(pre_data_trampoline, obfuscated_trampoline));
+
+    // Update entry point
+    binary->optional_header().addressof_entrypoint(added_section->virtual_address() + pre_data_trampoline.size());
+}
+
+
+std::vector<uint8_t> PEBinaryModifiers::get_code_for_image_base(uint32_t rva) {
+    std::vector<uint8_t> code = {0x5b, 0xB8}; // pop ebx; mov eax, jmp_code_RVA
+    auto rva_bytes = Utilities::to_little_endian_bytes_array(rva); // <jmp_code_RVA> in little endian
+    code.insert(code.end(), rva_bytes.begin(), rva_bytes.end());
+    code.insert(code.end(), {0x29, 0xC3, 0x8B, 0xFB}); // SUB EBX, EAX; MOV EDI, EBX
+    return code;
+}
+
+
+// Function to generate the assembly instructions for calling VirtualProtect
+std::vector<uint8_t> PEBinaryModifiers::call_virtualProtect(uint64_t vp_address, uint64_t address, uint64_t size, uint32_t vp_flag, bool is_64_bit) {
+    std::vector<uint8_t> bytes_array;
+
+    if (is_64_bit) {
+        // 64-bit code
+        bytes_array = {
+            // Allocate space on the stack for lpflOldProtect by subtracting 8 from RSP
+            0x48, 0x83, 0xEC, 0x08, // SUB RSP, 8
+
+            // 1. lpflOldProtect (passed in R9)
+            0x49, 0x89, 0xE1, // MOV R9, RSP
+
+            // 2. flNewProtect = vp_flag (0x40) (passed in R8D)
+            0x41, 0xB8, // MOV R8D, vp_flag
+        };
+        std::vector<uint8_t> vp_flag_bytes = Utilities::to_little_endian_bytes_array(vp_flag);
+        bytes_array.insert(bytes_array.end(), vp_flag_bytes.begin(), vp_flag_bytes.end());
+
+        // 3. dwSize = size (passed in RDX)
+        bytes_array.insert(bytes_array.end(), {0x48, 0xC7, 0xC2}); // MOV RDX, size
+        std::vector<uint8_t> size_bytes = Utilities::to_little_endian_bytes_array(size);
+        bytes_array.insert(bytes_array.end(), size_bytes.begin(), size_bytes.end());
+
+        // 4. lpAddress = address (passed in RCX)
+        bytes_array.insert(bytes_array.end(), {0x48, 0xB9}); // MOV RCX, address
+        std::vector<uint8_t> address_bytes = Utilities::to_little_endian_bytes_array(address);
+        bytes_array.insert(bytes_array.end(), address_bytes.begin(), address_bytes.end());
+
+        // 5. Call VirtualProtect
+        bytes_array.insert(bytes_array.end(), {0x48, 0xB8}); // MOV RAX, vp_address
+        std::vector<uint8_t> vp_address_bytes = Utilities::to_little_endian_bytes_array(vp_address);
+        bytes_array.insert(bytes_array.end(), vp_address_bytes.begin(), vp_address_bytes.end());
+        bytes_array.insert(bytes_array.end(), {0x48, 0x01, 0xF8}); // ADD RAX, RDI
+        bytes_array.insert(bytes_array.end(), {0xFF, 0xD0}); // CALL RAX
+        bytes_array.insert(bytes_array.end(), {0x48, 0x83, 0xC4, 0x08}); // ADD RSP, 8
+
+    } else {
+        // 32-bit code
+        bytes_array = {
+            // Allocate space on the stack for lpflOldProtect by subtracting 4 from ESP
+            0x83, 0xEC, 0x04, // SUB ESP, 4
+
+            // 1. lpflOldProtect (PUSH ESP)
+            0x54, // PUSH ESP
+
+            // 2. flNewProtect = vp_flag (0x40)
+            0x68 // PUSH vp_flag
+        };
+        std::vector<uint8_t> vp_flag_bytes = Utilities::to_little_endian_bytes_array(vp_flag);
+        bytes_array.insert(bytes_array.end(), vp_flag_bytes.begin(), vp_flag_bytes.end());
+
+        // 3. dwSize = size (PUSH size)
+        bytes_array.insert(bytes_array.end(), {0x68}); // PUSH
+        std::vector<uint8_t> size_bytes = Utilities::to_little_endian_bytes_array(size);
+        bytes_array.insert(bytes_array.end(), size_bytes.begin(), size_bytes.end());
+
+        // 4. lpAddress = address (PUSH address)
+        bytes_array.insert(bytes_array.end(), {0xB8}); // MOV EAX, address
+        std::vector<uint8_t> address_bytes = Utilities::to_little_endian_bytes_array(address);
+        bytes_array.insert(bytes_array.end(), address_bytes.begin(), address_bytes.end());
+        bytes_array.insert(bytes_array.end(), {0x01, 0xF8}); // ADD EAX, EDI
+        bytes_array.insert(bytes_array.end(), {0x50}); // PUSH EAX
+
+        // 5. hProcess = vp_address (PUSH vp_address)
+        bytes_array.insert(bytes_array.end(), {0xB8});
+        std::vector<uint8_t> vp_address_bytes = Utilities::to_little_endian_bytes_array(vp_address);
+        bytes_array.insert(bytes_array.end(), vp_address_bytes.begin(), vp_address_bytes.end());
+        bytes_array.insert(bytes_array.end(), {0x01, 0xF8}); // ADD EAX, EDI
+        bytes_array.insert(bytes_array.end(), {0xFF, 0x10}); // CALL DWORD PTR DS:[EAX]
+    }
+
+    return bytes_array;
+}
+
+
+uint32_t PEBinaryModifiers::characteristic_to_vp_flag(uint32_t characteristics) {
+    // Check the most permissive combination to the least
+    if (characteristics & static_cast<uint32_t>(LIEF::PE::Section::CHARACTERISTICS::MEM_EXECUTE)) {
+        if (characteristics & static_cast<uint32_t>(LIEF::PE::Section::CHARACTERISTICS::MEM_WRITE)) {
+            return 0x40;  // PAGE_EXECUTE_READWRITE
+        } else if (characteristics & static_cast<uint32_t>(LIEF::PE::Section::CHARACTERISTICS::MEM_READ)) {
+            return 0x20;  // PAGE_EXECUTE_READ
+        } else {
+            return 0x10;  // PAGE_EXECUTE
+        }
+    } else if (characteristics & static_cast<uint32_t>(LIEF::PE::Section::CHARACTERISTICS::MEM_WRITE)) {
+        return 0x04;  // PAGE_READWRITE
+    } else if (characteristics & static_cast<uint32_t>(LIEF::PE::Section::CHARACTERISTICS::MEM_READ)) {
+        return 0x02;  // PAGE_READONLY
+    }
+
+    // Default to PAGE_EXECUTE_READWRITE if no other flags match
+    return 0x40;  // Default rwx : PAGE_EXECUTE_READWRITE
+}
+
+std::vector<uint8_t> PEBinaryModifiers::trampoline_call(int32_t oep_or_offset) {
+    std::vector<uint8_t> result = {0xE8}; // Call opcode
+    std::vector<uint8_t> offset_bytes = Utilities::to_little_endian_bytes_array(oep_or_offset);
+    result.insert(result.end(), offset_bytes.begin(), offset_bytes.end());
+    return result;
+}
+
+std::vector<uint8_t> PEBinaryModifiers::trampoline_jmp(int32_t oep_or_offset) {
+    std::vector<uint8_t> result = {0xE9}; // Jump opcode
+    std::vector<uint8_t> offset_bytes = Utilities::to_little_endian_bytes_array(oep_or_offset);
+    result.insert(result.end(), offset_bytes.begin(), offset_bytes.end());
+    return result;
+}
+
+
+uint64_t PEBinaryModifiers::get_virtual_protect_address(LIEF::PE::Binary& pe) {
+    // Check if 'VirtualProtect' is already in imports
+    for (const auto& import_ : pe.imports()) {
+        for (const auto& entry : import_.entries()) {
+            if (entry.name() == "VirtualProtect") {
+                return entry.iat_address();
+            }
+        }
+    }
+
+    // Find or add 'kernel32.dll' import
+    LIEF::PE::Import* kernel32 = nullptr;
+    for (auto& import_ : pe.imports()) {
+        if (import_.name().size() > 0 && import_.name().compare("kernel32.dll") == 0) {
+            kernel32 = &import_;
+            break;
+        }
+    }
+
+    if (kernel32 == nullptr) {
+        kernel32 = &pe.add_library("KERNEL32.DLL");
+    }
+
+    // Add 'VirtualProtect' to 'kernel32.dll' and get its import entry
+    auto& virtual_protect_entry = kernel32->add_entry("VirtualProtect");
+    return virtual_protect_entry.iat_address();
+}
+
+
+
+
+// Check if a name is already used in the used names set
+bool PEBinaryModifiers::is_name_used(const std::string& name, const std::unordered_set<std::string>& used_names) {
+    return used_names.find(name) != used_names.end();
+}
+
+std::vector<std::pair<LIEF::PE::Section*, uint32_t>> PEBinaryModifiers::rename_section_and_update_permissions(LIEF::PE::Binary& binary) {
+        std::vector<std::pair<LIEF::PE::Section*, uint32_t>> sections_edited;
+        std::unordered_set<std::string> already_used = {".text"}; // Initialize with default used names
+        std::vector<std::string> available_choices;
+
+        // Mapping from names to characteristics for fast lookup
+        std::unordered_map<std::string, LIEF::PE::Section::CHARACTERISTICS> permissions_map;
+        for (const auto& [name, characteristics] : common_sections_permissions) {
+            permissions_map[name] = characteristics;
+            if (!is_name_used(name, already_used)) {
+                available_choices.push_back(name);
+            }
+        }
+
+        for (auto& section : binary.sections()) {
+            uint32_t original_characteristics = section.characteristics();
+            auto it = permissions_map.find(section.name());
+            if (it != permissions_map.end()) {
+                if (section.characteristics() != static_cast<uint32_t>(it->second)) {
+                    sections_edited.push_back(std::make_pair(&section, original_characteristics));
+                    section.characteristics(static_cast<uint32_t>(it->second));
+                }
+            } else {
+                // Find a new name not already used
+                std::string chosen_name;
+                for (auto& name : available_choices) {
+                    if (!is_name_used(name, already_used)) {
+                        chosen_name = name;
+                        break;
+                    }
+                }
+
+                if (chosen_name.empty()) {
+                    std::cout << "No more choices of section names available to rename" << std::endl;
+                    break;
+                }
+
+                std::cout << "Renaming section " << section.name() << " to " << chosen_name << std::endl;
+                section.name(chosen_name);
+                already_used.insert(chosen_name);
+
+                // Remove the chosen name from available choices
+                available_choices.erase(std::remove(available_choices.begin(), available_choices.end(), chosen_name), available_choices.end());
+
+                // Update permissions if different
+                auto perm_it = permissions_map.find(chosen_name);
+                if (perm_it != permissions_map.end() && section.characteristics() != static_cast<uint32_t>(perm_it->second)) {
+                    sections_edited.push_back(std::make_pair(&section, original_characteristics));
+                    section.characteristics(static_cast<uint32_t>(perm_it->second));
+                }
+            }
+        }
+
+        return sections_edited;
+    }
+
+
+
+

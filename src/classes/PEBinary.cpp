@@ -286,3 +286,9 @@ std::string PEBinary::execute_command(const std::string& command) {
     std::cout << "Result: " << result << std::endl;
     return result;
 }
+
+
+void PEBinary::update_section_permissions(  const std::vector<uint8_t>& pre_data, const std::vector<uint8_t>& post_data, size_t nb_deadcode )
+{
+    PEBinaryModifiers::update_section_permissions(pe, pre_data, post_data, nb_deadcode);
+}

@@ -15,7 +15,7 @@ You can install LIEF by running the following command:
 ```bash
 ./install_lief.sh
 ```
-Or you can use the Dockerfile provided in the repository to build the tool, it will install all the dependencies for you.
+Or you can use the **Dockerfile** provided in the repository to build the tool, it will install all the dependencies for you.
 
 ### Building NotPacked++
 Once you have installed the dependencies, you can build the tool by running the following command:

@@ -38,7 +38,7 @@ In the current version, the tool focuses on the PE file format and the most comm
 
 
 Description: This program applies some alterations to a PE file. 
- Note that when no alteration is specified ALL of them will be applied, if at least one is specified only selected ones will be applied
+ Note that when no alteration is specified ALL non-overlapping alterations will be applied, if at least one is specified only selected ones will be applied
 
 Usage: ./notpacked++ <input_file>
 

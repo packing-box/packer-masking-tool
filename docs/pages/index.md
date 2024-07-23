@@ -16,13 +16,13 @@ In the current version, the tool focuses on the PE file format and the most comm
 - [Getting Started](#getting-started)
 - [Installation](installation.md)
 - [Alterations](alterations.md)
-- [Usage](quick_start.md)
+- [Usage](quickstart.md)
 
 ## Getting Started
 
 To get started with NotPacked++, you can either download the latest release from the [releases page](https://github.com/packing-box/packer-masking-tool/releases) or build it from source.
 
-- [Quick Start Guide](quick_start.md) : A quick guide to get you started with NotPacked++
+- [Quick Start Guide](quickstart.md) : A quick guide to get you started with NotPacked++
 - [Installation](installation.md) : Instructions on how to install dependencies and build NotPacked++
 
 

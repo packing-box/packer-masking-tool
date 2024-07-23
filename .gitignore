@@ -1,5 +1,5 @@
 *.exe
-*.exe.bak
+*.bak
 *.o
 *.zip
 .vscode
@@ -7,3 +7,4 @@
 *.cpp
 raw_size_editor
 exe/*
+docs/site/*

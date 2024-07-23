@@ -19,6 +19,22 @@ public:
         }
     }
 
+    static void update_section_permissions_and_move_ep(PEBinary& binary){
+        try
+        {
+            // -- Update the permissions of the sections --
+            //std::vector<uint8_t> pre_data = Utilities::generateRandomBytes(64);
+            //std::vector<uint8_t> post_data = Utilities::generateRandomBytes(64);
+            //size_t nb_deadcode = 128;
+            // TODO: use pre_data and post_data
+            binary.update_section_permissions();
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << "[Error] " << e.what() << '\n';
+        }
+    }
+
     static void move_entrypoint_to_new_low_entropy_section(PEBinary& binary){
         // this function is for moving the entry point to a new section with low entropy and common related name
 

@@ -7,7 +7,7 @@ FILE=upx_7z.exe
 
 
 # Compiler flags
-CXXFLAGS = -Wall -std=c++11
+CXXFLAGS = -Wall -std=c++17
 
 # LIEF library
 LIEF = -I/usr/local/LIEF/include/LIEF -L/usr/local/LIEF/lib -lLIEF
@@ -35,15 +35,6 @@ PEBinary.o: $(DIR_CLASSES)/PEBinary.cpp $(DIR_CLASSES)/PEBinary.hpp
 
 PEBinaryModifiers.o: $(DIR_CLASSES)/PEBinaryModifiers.cpp $(DIR_CLASSES)/PEBinaryModifiers.hpp
 	$(CXX) $(PARAMS) -c $(DIR_CLASSES)/PEBinaryModifiers.cpp $(LIEF)
-
-run_test: $(EXEC)
-	rm -f output_$(FILE)
-	rm -f $(FILE) && cp $(FILE).bak $(FILE) && sha256sum $(FILE)
-	./$(EXEC) $(FILE) && sha256sum output_$(FILE)
-	wine output_$(FILE)
-
-raw_size_editor: $(SOURCE_DIR)/edit_raw_size.cpp
-	$(CXX) $(PARAMS) -o raw_size_editor $(SOURCE_DIR)/edit_raw_size.cpp
 
 clean:
 	rm -f *.o $(EXEC) 
