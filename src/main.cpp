@@ -24,7 +24,7 @@ void header(){
     std::cout << GRAY << ITALIC << " Author       :   J. RAMHANI" << std::endl;
     std::cout <<  " Contributor  :   A. D'Hondt" << std::endl;
     std::cout <<  " Version      :   0.1" << std::endl;
-    std::cout <<  " Copyright    :   © 2024" << std::endl;
+    std::cout <<  " Copyright    :   © 2021-2024 Alexandre D'Hondt, Jaber Ramhani" << std::endl;
     std::cout <<  " License      :   GNU General Public License v3.0" << std::endl;
     std::cout << GRAY << "======================================================" << RESET << std::endl;
     std::cout << std::endl;
@@ -36,24 +36,23 @@ void help(const char* program_name){
     std::cerr << "Description: This program applies some alterations to a PE file. \n Note that when no alteration is specified ALL of them will be applied, if at least one is specified only selected ones will be applied" << std::endl;
     std::cerr << std::endl;
     // Usage
-    std::cerr << "Usage: " << program_name << " <input_file>" << std::endl;
+    std::cerr << "Usage: " << program_name << " <input_file> [OPTIONS]" << std::endl;
 
     std::cerr << std::endl;
-    std::cerr << "    -o <output_file>  : Set the output file name." << std::endl;
+    std::cerr << "    -o <output_file>  : Set the output file name. (default:<input_file>_out.exe)" << std::endl;
     std::cerr << "    --help            : Display this help message." << std::endl;
     std::cerr << std::endl;
 
     // possible options
     std::cerr << "Other options: (by default all of them applies)" << std::endl;
     std::cerr << "    --add-api         : Add 20 common API imports to the PE file." << std::endl;
-    //std::cerr << "    --low-entropy     : Add a low entropy text section to the PE file." << std::endl;
     //std::cerr << "    --fill-zero       : Fill sections with zeros from their raw size to their virtual size." << std::endl;
     std::cerr << "    --move-ep         : Move the entry point to a new low entropy section." << std::endl;
     std::cerr << "    --rename-sections : Rename packer sections to standard section names." << std::endl;
     
     std::cerr << "    --permissions      : Update the permissions of all sections to standard ones (rwx/rw-/..) and move the entry point to a new section." << std::endl;
 
-    std::cerr << "    --edit-raw-size    : Edit the raw size of sections in the header (without adding real data bytes)." << std::endl;
+    std::cerr << "    --edit-raw-size    : Edit the raw size value in the header of sections having a 0 raw size (without adding real data bytes)." << std::endl;
 
     std::cerr << std::endl;
 }
@@ -100,6 +99,7 @@ int main( int argc, char **argv) {
         else if (std::strcmp(argv[i], "--add-api") == 0)
         {
             at_least_one_alteration = true;
+
             PEBinaryAlterations::add_20_common_api_imports(binary);
         } 
         /*else if (std::strcmp(argv[i], "--fill-zero") == 0)
@@ -125,10 +125,11 @@ int main( int argc, char **argv) {
         {
             at_least_one_alteration = true;
             LIEF::PE::Builder builder(*binary.get());
-            builder.patch_imports(true);
+            //builder.patch_imports(true);
+            //builder.build_imports(true); // This adds .l1 section (and breaks the executable)
             builder.build();
             builder.write(output_file_name);
-            // properly overwrite the binary variable to a new PEBinary(output_file_name) object
+
             binary = PEBinary(output_file_name);
 
             PEBinaryAlterations::edit_raw_size_of_sections_in_header(binary);
@@ -142,22 +143,24 @@ int main( int argc, char **argv) {
         //PEBinaryAlterations::add_low_entropy_text_section(binary);
         //PEBinaryAlterations::fill_sections_with_zeros(binary);
         //PEBinaryAlterations::move_entrypoint_to_new_low_entropy_section(binary);
-        
-
-        PEBinaryAlterations::update_section_permissions_and_move_ep(binary);
-
 
         // TODO:
         //PEBinaryAlterations::add_20_common_api_imports(binary); // TODO: fix (keep API common)
         // ___ this adds a section .l1 or .l2 (because of lief) ... so need to rename ___
         //PEBinaryAlterations::rename_packer_sections(binary);
+        
+
+        // It moves the entry point to a new section and updates the permissions of all sections
+        // And also renames the packer sections to standard section names
+        PEBinaryAlterations::update_section_permissions_and_move_ep(binary);
 
 
         LIEF::PE::Builder builder(*binary.get());
-        builder.patch_imports(true);
+        //builder.patch_imports(true);
+        //builder.build_imports(true); // This adds .l1 section (and breaks the executable)
         builder.build();
         builder.write(output_file_name);
-        // properly overwrite the binary variable to a new PEBinary(output_file_name) object
+
         binary = PEBinary(output_file_name);
 
         PEBinaryAlterations::edit_raw_size_of_sections_in_header(binary);
@@ -171,11 +174,14 @@ int main( int argc, char **argv) {
     // =======================================
     // Save the modified PE file
     LIEF::PE::Builder builder(*binary.get());
-    builder.patch_imports(true);
+
+    //builder.patch_imports(true); 
+    //builder.build_imports(true); // This adds .l1 section (and breaks the executable)
     builder.build();
     builder.write(output_file_name);
-    // green color
-    std::cout << "\033[32m" << "[SUCCESS] \033[0m File saved as: " << output_file_name << std::endl;
+
+
+    std::cout << GREEN << "[SUCCESS] \033[0m File saved as: " << output_file_name << RESET << std::endl;
 
     return 0;
 }

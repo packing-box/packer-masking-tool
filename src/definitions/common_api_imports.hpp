@@ -8,22 +8,30 @@
 // vector of tuples (dll_name, function_name), representing common API imports
 // example: ("kernel32.dll", "LoadLibraryA"):
 const std::vector<std::pair<std::string, std::string>> common_api_imports = {
-        
-    {"ADVAPI32.DLL", "CryptSetProvParam"}, 
-    {"ADVAPI32.DLL", "RegQueryInfoKeyW"}, 
-    {"ADVAPI32.DLL", "AddUsersToEncryptedFileEx"}, 
-    {"ADVAPI32.DLL", "CheckAppInitBlockedServiceIdentity"}, 
-    {"ADVAPI32.DLL", "LsaEnumerateAccounts"}, 
-    {"ADVAPI32.DLL", "RegSaveKeyA"}, 
-    {"ADVAPI32.DLL", "CreateProcessAsUserW"}, 
-    {"ADVAPI32.DLL", "ReportEventA"}, 
-    {"ADVAPI32.DLL", "WmiNotificationRegistrationW"}, 
-    {"ADVAPI32.DLL", "SetSecurityDescriptorDacl"}, 
-    {"ADVAPI32.DLL", "LsaSetInformationPolicy"}, 
-    {"ADVAPI32.DLL", "LsaLookupNames2"}, 
-    {"MSVCR120.DLL", "exit"}, 
-    {"MSVCR120.DLL", "_snwscanf_l"}, 
-    {"MSVCR120.DLL", "acosf"}, 
+
+   {"KERNEL32.DLL", "GetCurrentProcess"},
+   {"KERNEL32.DLL", "GetLastError"},
+   {"KERNEL32.DLL", "SetUnhandledExceptionFilter"},
+   {"KERNEL32.DLL", "GetCurrentProcessId"},
+   {"KERNEL32.DLL", "TerminateProcess"},
+   {"KERNEL32.DLL", "UnhandledExceptionFilter"},
+   {"KERNEL32.DLL", "GetCurrentThreadId"},
+   {"KERNEL32.DLL", "QueryPerformanceCounter"},
+   {"KERNEL32.DLL", "GetSystemTimeAsFileTime"},
+   {"KERNEL32.DLL", "GetProcAddress"},
+   {"KERNEL32.DLL", "Sleep"},
+   {"KERNEL32.DLL", "GetModuleHandleA"},
+   {"KERNEL32.DLL", "GetTickCount"},
+   {"KERNEL32.DLL", "EnterCriticalSection"},
+   {"KERNEL32.DLL", "LeaveCriticalSection"},
+   {"KERNEL32.DLL", "DeleteCriticalSection"},
+   {"KERNEL32.DLL", "TlsGetValue"},
+    {"KERNEL32.DLL", "GetStartupInfoA"},
+    {"KERNEL32.DLL", "InitializeCriticalSection"},
+    {"KERNEL32.DLL", "CloseHandle"},
+
+
+    // From here it may fail to load DLL
     {"USER32.DLL", "DdeNameService"}, 
     {"USER32.DLL", "GetSystemMetrics"}, 
     {"USER32.DLL", "GetMessageExtraInfo"}, 
@@ -111,7 +119,31 @@ const std::vector<std::pair<std::string, std::string>> common_api_imports = {
     {"USER32.DLL", "IsChild"}, 
     {"USER32.DLL", "GetWindowPlacement"}, 
     {"USER32.DLL", "GhostWindowFromHungWindow"}, 
-    {"USER32.DLL", "PostQuitMessage"}
+    {"USER32.DLL", "PostQuitMessage"},
+
+    
+
+        /*
+    {"ADVAPI32.DLL", "CryptSetProvParam"}, 
+    {"ADVAPI32.DLL", "RegQueryInfoKeyW"}, 
+    {"ADVAPI32.DLL", "AddUsersToEncryptedFileEx"}, 
+    {"ADVAPI32.DLL", "CheckAppInitBlockedServiceIdentity"}, 
+    {"ADVAPI32.DLL", "LsaEnumerateAccounts"}, 
+    {"ADVAPI32.DLL", "RegSaveKeyA"}, 
+    {"ADVAPI32.DLL", "CreateProcessAsUserW"}, 
+    {"ADVAPI32.DLL", "ReportEventA"}, 
+    {"ADVAPI32.DLL", "WmiNotificationRegistrationW"}, 
+    {"ADVAPI32.DLL", "SetSecurityDescriptorDacl"}, 
+    {"ADVAPI32.DLL", "LsaSetInformationPolicy"}, 
+    {"ADVAPI32.DLL", "LsaLookupNames2"}, 
+
+    {"MSVCR120.DLL", "exit"}, 
+    {"MSVCR120.DLL", "_snwscanf_l"}, 
+    {"MSVCR120.DLL", "acosf"}, 
+    
+    
+    */
+
 
 };
 

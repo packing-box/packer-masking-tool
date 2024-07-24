@@ -5,6 +5,7 @@
 // random number generator
 #include <random>
 #include "RawSizeEditor.cpp"
+#include "constants.hpp"
 
 class PEBinaryAlterations {
 public:
@@ -12,6 +13,8 @@ public:
     static void rename_packer_sections(PEBinary& binary){
         try
         {
+            std::cout << YELLOW << "[INFO] \033[0m Renaming packer sections to standard section names..." << RESET << std::endl;
+
             for (unsigned int i = 0; i < 50; i++) {
                 _rename_one_packer_section(binary);
             }
@@ -25,6 +28,8 @@ public:
     static void update_section_permissions_and_move_ep(PEBinary& binary){
         try
         {
+            std::cout << YELLOW << "[INFO] \033[0m Updating the permissions of all sections to standard ones (rwx/rw-/..), moving the entry point to a new section and Renaming sections to standard ones..." << RESET << std::endl;
+
             // -- Update the permissions of the sections --
             //std::vector<uint8_t> pre_data = Utilities::generateRandomBytes(64);
             size_t random_nb_bytes = Utilities::get_random_number(1024, 8192);
@@ -36,15 +41,18 @@ public:
         }
         catch(const std::exception& e)
         {
-            std::cerr << "[Error] " << e.what() << '\n';
+            std::cerr << RED <<"[Error] \033[0m" << e.what() << '\n';
         }
     }
 
 
     static void edit_raw_size_of_sections_in_header(PEBinary& binary){
+        std::cout << YELLOW << "[INFO] \033[0m Editing the raw size value in the header of sections having a 0 raw size (without adding real data bytes)..." << RESET << std::endl;
+
         // Description: Edit the raw size of sections in the header
-        
-        RawSizeEditor editor(binary.get_filename().c_str());
+        std::string file_path = binary.get_filename().c_str();
+
+        RawSizeEditor editor(file_path.c_str());
         size_t total_added_raw_size = editor.edit(0.9, true);
         if(total_added_raw_size > 0){
             //std::cout << "Total added raw size: " << total_added_raw_size << std::endl;
@@ -55,6 +63,7 @@ public:
 
     static void move_entrypoint_to_new_low_entropy_section(PEBinary& binary){
         // this function is for moving the entry point to a new section with low entropy and common related name
+        std::cout << YELLOW << "[INFO] \033[0m Moving the entry point to a new low entropy section..." << RESET << std::endl;
 
         std::vector<std::string> select_from_this = {".text", ".code", ".init", ".page", ".cde", ".textbss"};
         std::vector<std::string> section_names = binary.get_section_names();
@@ -103,11 +112,30 @@ public:
     }
 
     static void add_20_common_api_imports(PEBinary& binary){
+        std::cout << YELLOW << "[INFO] \033[0m Adding 20 common API imports to the PE file..." << RESET << std::endl;
+        std::cout << RED << "[WARNING] \033[0m Currently adding API imports does not maintain the executable functionality..." << RESET << std::endl;
+
         const unsigned int MAX_LOOP = 20;
         // Add common API imports to the IAT, avoiding duplicates
         std::vector<std::pair<std::string, std::string>> COMMON_API_IMPORTS = binary.get_common_api_imports();
+        std::vector<std::pair<std::string, std::string>> api_imports = binary.get_api_imports();
+
+        // select 20 random common API imports before 
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_int_distribution<> dis(0, COMMON_API_IMPORTS.size()-1);
+
         for (unsigned int i = 0; i < MAX_LOOP; i++) {
-            binary.add_API_to_IAT(Utilities::select_random(COMMON_API_IMPORTS, binary.get_api_imports()));
+            // select a random common API import (no duplicates)
+            std::pair<std::string, std::string> random_api_import = COMMON_API_IMPORTS[dis(gen)];
+            // debug print
+            if(std::find(api_imports.begin(), api_imports.end(), random_api_import) == api_imports.end()){
+                std::cout << "Adding API import: " << random_api_import.first << " - " << random_api_import.second << std::endl;
+
+                binary.add_API_to_IAT(random_api_import);
+                // add the API import to the list of imports
+                api_imports.push_back(random_api_import);
+            }
         }
     }
 
