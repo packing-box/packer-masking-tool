@@ -10,10 +10,12 @@ FILE=upx_7z.exe
 CXXFLAGS = -Wall -std=c++17
 
 # LIEF library
-LIEF = -I/usr/local/LIEF/include/LIEF -L/usr/local/LIEF/lib -lLIEF
-PARAMS = $(CXXFLAGS)
+#LIEF = -I/usr/local/LIEF/include/LIEF -L/usr/local/LIEF/lib -lLIEF # DYNAMIC
+LIEF = -I/usr/local/LIEF/include/LIEF -L/usr/local/LIEF/lib -l:libLIEF.a # STATIC
 
-
+#STATIC_LINK = #-static-libgcc -static-libstdc++
+PARAMS = $(CXXFLAGS) #$(STATIC_LINK)
+# FROM 400KB to 7.1MB (9.1MB with static link of libstdc++ and libgcc)
 
 SOURCE_DIR = src
 

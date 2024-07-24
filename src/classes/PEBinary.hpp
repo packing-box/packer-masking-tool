@@ -12,6 +12,8 @@ std::string u16string_to_utf8(const std::u16string& u16str);
 class PEBinary {
 public:
     PEBinary(const std::string& file);
+    PEBinary(PEBinary&&) noexcept;
+    PEBinary& operator=(PEBinary&&) noexcept;
     ~PEBinary();
     LIEF::PE::Section* get_entrypoint_section();
     std::unique_ptr<LIEF::PE::Binary>& get();
@@ -42,7 +44,7 @@ public:
                                     const std::vector<uint8_t>& post_data={},
                                     size_t nb_deadcode=128
                                     );
-
+    std::string get_filename();
 private:
     std::string filename;
     std::unique_ptr<LIEF::PE::Binary> pe;

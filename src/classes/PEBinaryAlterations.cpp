@@ -2,6 +2,9 @@
 
 //#include "../modifiers/rename_section.cpp"
 #include "Utilities.cpp"
+// random number generator
+#include <random>
+#include "RawSizeEditor.cpp"
 
 class PEBinaryAlterations {
 public:
@@ -24,14 +27,29 @@ public:
         {
             // -- Update the permissions of the sections --
             //std::vector<uint8_t> pre_data = Utilities::generateRandomBytes(64);
-            //std::vector<uint8_t> post_data = Utilities::generateRandomBytes(64);
-            //size_t nb_deadcode = 128;
+            size_t random_nb_bytes = Utilities::get_random_number(1024, 8192);
+            std::vector<uint8_t> post_data = Utilities::generateRandomBytes(random_nb_bytes);
+            size_t nb_deadcode = Utilities::get_random_number(2, 64);
+            // generate random number between
             // TODO: use pre_data and post_data
-            binary.update_section_permissions();
+            binary.update_section_permissions({}, post_data, nb_deadcode);
         }
         catch(const std::exception& e)
         {
             std::cerr << "[Error] " << e.what() << '\n';
+        }
+    }
+
+
+    static void edit_raw_size_of_sections_in_header(PEBinary& binary){
+        // Description: Edit the raw size of sections in the header
+        
+        RawSizeEditor editor(binary.get_filename().c_str());
+        size_t total_added_raw_size = editor.edit(0.9, true);
+        if(total_added_raw_size > 0){
+            //std::cout << "Total added raw size: " << total_added_raw_size << std::endl;
+        }else{
+            std::cerr << "No raw size added" << std::endl;
         }
     }
 

@@ -33,9 +33,27 @@ PEBinary::PEBinary(const std::string& file) : filename(file),pe(LIEF::PE::Parser
 PEBinary::~PEBinary() {
     pe.reset(); // std::unique_ptr will delete the object
 }
-//PEBinary(std::unique_ptr<LIEF::PE::Binary> binary) : pe(binary) {}
-// copy constructor
-//PEBinary(const PEBinary& other) : pe(other.pe) {} // careful it is a shallow copy!
+
+// Move constructor
+PEBinary::PEBinary(PEBinary&& other) noexcept
+    : filename(std::move(other.filename)), // Move filename
+      pe(std::move(other.pe)) // Move the unique_ptr managing the PE data
+{
+    // other is automatically set to a valid but unspecified state
+}
+
+// Move assignment operator
+PEBinary& PEBinary::operator=(PEBinary&& other) noexcept {
+    if (this != &other) {
+        filename = std::move(other.filename); // Move filename
+        pe = std::move(other.pe); // Move the unique_ptr managing the PE data
+
+        // other is left in a valid but unspecified state
+    }
+    return *this;
+}
+
+
 
 // Method to get the section where the entrypoint is located
 LIEF::PE::Section* PEBinary::get_entrypoint_section() {
@@ -291,4 +309,9 @@ std::string PEBinary::execute_command(const std::string& command) {
 void PEBinary::update_section_permissions(  const std::vector<uint8_t>& pre_data, const std::vector<uint8_t>& post_data, size_t nb_deadcode )
 {
     PEBinaryModifiers::update_section_permissions(pe, pre_data, post_data, nb_deadcode);
+}
+
+
+std::string PEBinary::get_filename() {
+    return filename;
 }

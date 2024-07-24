@@ -1,7 +1,9 @@
 #include <LIEF/LIEF.hpp>
 #include <iostream>
 #include <vector>
-
+#include <string>
+#include <cstring>
+#include <sstream>
 
 #include "classes/PEBinary.hpp"
 #include "classes/PEBinaryAlterations.cpp"
@@ -58,16 +60,22 @@ void help(const char* program_name){
     
     std::cerr << "    --permissions      : Update the permissions of all sections to standard ones (rwx/rw-/..) and move the entry point to a new section." << std::endl;
 
+    std::cerr << "    --edit-raw-size    : Edit the raw size of sections in the header (without adding real data bytes)." << std::endl;
+
     std::cerr << std::endl;
 }
 
 
 int main( int argc, char **argv) {
     header();
+    std::string input;
+
     if(argc < 2){
         help(argv[0]);
         return 1;
     }
+
+    input = std::string(argv[1]);
 
     for(int i = 0; i < argc; i++){
         if (std::strcmp(argv[i], "--help") == 0) {
@@ -77,11 +85,14 @@ int main( int argc, char **argv) {
     }
 
     // intialize output file name
-    std::string output_file_name = "output_"+std::string(argv[1]);
+    std::string output_file_name = std::string(input);
+    // remove the extension
+    output_file_name = output_file_name.substr(0, output_file_name.find_last_of("."));
+    output_file_name += "_out.exe";
 
     // =======================================
     // Load the PE file
-    PEBinary binary(argv[1]);
+    PEBinary binary(input);
 
     // =======================================
     bool at_least_one_alteration = false;
@@ -117,18 +128,46 @@ int main( int argc, char **argv) {
             at_least_one_alteration = true;
             PEBinaryAlterations::update_section_permissions_and_move_ep(binary);
         }
+        else if (std::strcmp(argv[i], "--edit-raw-size") == 0)
+        {
+            at_least_one_alteration = true;
+            LIEF::PE::Builder builder(*binary.get());
+            builder.patch_imports(true);
+            builder.build();
+            builder.write(output_file_name);
+            // properly overwrite the binary variable to a new PEBinary(output_file_name) object
+            binary = PEBinary(output_file_name);
+
+            PEBinaryAlterations::edit_raw_size_of_sections_in_header(binary);
+        }
         
     }
 
     if(!at_least_one_alteration){
         // ==== apply all alterations ======
-        //PEBinaryAlterations::add_20_common_api_imports(binary); // TODO: fix (keep API common)
+        
         //PEBinaryAlterations::add_low_entropy_text_section(binary);
         //PEBinaryAlterations::fill_sections_with_zeros(binary);
         //PEBinaryAlterations::move_entrypoint_to_new_low_entropy_section(binary);
-        //PEBinaryAlterations::rename_packer_sections(binary);
+        
 
         PEBinaryAlterations::update_section_permissions_and_move_ep(binary);
+
+
+        // TODO:
+        //PEBinaryAlterations::add_20_common_api_imports(binary); // TODO: fix (keep API common)
+        // ___ this adds a section .l1 or .l2 (because of lief) ... so need to rename ___
+        //PEBinaryAlterations::rename_packer_sections(binary);
+
+
+        LIEF::PE::Builder builder(*binary.get());
+        builder.patch_imports(true);
+        builder.build();
+        builder.write(output_file_name);
+        // properly overwrite the binary variable to a new PEBinary(output_file_name) object
+        binary = PEBinary(output_file_name);
+
+        PEBinaryAlterations::edit_raw_size_of_sections_in_header(binary);
     }
     
     

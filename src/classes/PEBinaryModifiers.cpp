@@ -152,52 +152,6 @@ void PEBinaryModifiers::move_entrypoint_to_new_section(std::unique_ptr<LIEF::PE:
 }
 
 
-void PEBinaryModifiers::move_ep_to_new_section(std::unique_ptr<LIEF::PE::Binary>& binary, 
-                                    const std::string& name,
-                                    uint32_t characteristics,
-                                    const std::vector<uint8_t>& pre_data, const std::vector<uint8_t>& post_data,
-                                    size_t nb_deadcode,
-                                    uint32_t offset_jmp,
-                                    bool use_jump
-                                    ) {
-    if(characteristics == 0){
-        characteristics = static_cast<u_int32_t>(LIEF::PE::Section::CHARACTERISTICS::MEM_READ | LIEF::PE::Section::CHARACTERISTICS::MEM_EXECUTE); 
-    }
-
-    std::vector<uint8_t> entrypoint_data = get_trampoline_instructions(0, nb_deadcode, use_jump);
-
-    // Combine pre_data, trampoline, and post_data
-    std::vector<uint8_t> section_data = pre_data;
-    section_data.insert(section_data.end(), entrypoint_data.begin(), entrypoint_data.end());
-    section_data.insert(section_data.end(), post_data.begin(), post_data.end());
-
-    add_section(binary, name, section_data, characteristics);
-
-    LIEF::PE::Section* created_section = binary->get_section(name);
-    if (created_section == nullptr) {
-        std::cerr << "Failed to create section \"" << name << "\"" << std::endl;
-        return;
-    }
-
-    if(offset_jmp == 0){
-        offset_jmp = binary->optional_header().addressof_entrypoint() - (created_section->virtual_address() + pre_data.size() + entrypoint_data.size());
-    }
-
-    // replace last 4 bytes of the trampoline with the offset
-    for (int i = 0; i < 4; ++i) {
-        entrypoint_data[entrypoint_data.size()-4+i] = (offset_jmp >> (i*8)) & 0xFF;
-    }
-    
-    std::vector<uint8_t> new_section_data = pre_data;
-    new_section_data.insert(new_section_data.end(), entrypoint_data.begin(), entrypoint_data.end());
-    new_section_data.insert(new_section_data.end(), post_data.begin(), post_data.end());
-
-    created_section->content(new_section_data);
-
-    // Update the entry point to point to the new section (pre_data + trampoline + post_data)
-    binary->optional_header().addressof_entrypoint(binary->get_section(name)->virtual_address() + pre_data.size());
-}
-
 
 // Function to move the entry point to slack_space of given section
 void PEBinaryModifiers::move_entrypoint_to_slack_space(std::unique_ptr<LIEF::PE::Binary>& binary, const std::string& section_name,
@@ -359,6 +313,55 @@ std::vector<uint8_t> PEBinaryModifiers::get_trampoline_instructions(uint64_t off
 }
 
 
+
+
+void PEBinaryModifiers::move_ep_to_new_section(std::unique_ptr<LIEF::PE::Binary>& binary, 
+                                    const std::string& name,
+                                    uint32_t characteristics,
+                                    const std::vector<uint8_t>& pre_data, const std::vector<uint8_t>& post_data,
+                                    size_t nb_deadcode,
+                                    uint32_t offset_jmp,
+                                    bool use_jump
+                                    ) {
+    if(characteristics == 0){
+        characteristics = static_cast<u_int32_t>(LIEF::PE::Section::CHARACTERISTICS::MEM_READ | LIEF::PE::Section::CHARACTERISTICS::MEM_EXECUTE); 
+    }
+
+    std::vector<uint8_t> entrypoint_data = get_trampoline_instructions(0, nb_deadcode, use_jump);
+
+    // Combine pre_data, trampoline, and post_data
+    std::vector<uint8_t> section_data = pre_data;
+    section_data.insert(section_data.end(), entrypoint_data.begin(), entrypoint_data.end());
+    section_data.insert(section_data.end(), post_data.begin(), post_data.end());
+
+    add_section(binary, name, section_data, characteristics);
+
+    LIEF::PE::Section* created_section = binary->get_section(name);
+    if (created_section == nullptr) {
+        std::cerr << "Failed to create section \"" << name << "\"" << std::endl;
+        return;
+    }
+
+    if(offset_jmp == 0){
+        offset_jmp = binary->optional_header().addressof_entrypoint() - (created_section->virtual_address() + pre_data.size() + entrypoint_data.size());
+    }
+
+    // replace last 4 bytes of the trampoline with the offset
+    for (int i = 0; i < 4; ++i) {
+        entrypoint_data[entrypoint_data.size()-4+i] = (offset_jmp >> (i*8)) & 0xFF;
+    }
+    
+    std::vector<uint8_t> new_section_data = pre_data;
+    new_section_data.insert(new_section_data.end(), entrypoint_data.begin(), entrypoint_data.end());
+    new_section_data.insert(new_section_data.end(), post_data.begin(), post_data.end());
+
+    created_section->content(new_section_data);
+
+    // Update the entry point to point to the new section (pre_data + trampoline + post_data)
+    binary->optional_header().addressof_entrypoint(binary->get_section(name)->virtual_address() + pre_data.size());
+}
+
+
 // Function to move the entry point to a new section
 void PEBinaryModifiers::update_section_permissions(std::unique_ptr<LIEF::PE::Binary>& binary, 
                                     const std::vector<uint8_t>& pre_data, const std::vector<uint8_t>& post_data,
@@ -388,11 +391,17 @@ void PEBinaryModifiers::update_section_permissions(std::unique_ptr<LIEF::PE::Bin
 
     // Adding a new section
     std::vector<uint8_t> pre_data_trampoline = Utilities::append_vectors( Utilities::append_vectors(get_code_for_image_base(0), bytes_to_add) , trampoline_jmp(0));
-    std::vector<uint8_t> deadcode_obfuscation(10, 0x90);  // TODO: replace with actual deadcode obfuscation
 
-    uint32_t offset_to_second_ep = pre_data_trampoline.size() + deadcode_obfuscation.size() + trampoline_jmp(0).size();
-    auto obfuscated_trampoline = Utilities::append_vectors(deadcode_obfuscation, trampoline_call(-offset_to_second_ep));
 
+    // use get_trampoline_instructions
+    std::vector<uint8_t> obfuscated_trampoline = get_trampoline_instructions(0, nb_deadcode, false);
+
+    uint32_t offset_to_second_ep = (pre_data_trampoline.size() + obfuscated_trampoline.size());
+    uint32_t neg_offset_to_second_ep = -offset_to_second_ep;
+    // replace last 4 bytes of the trampoline with the offset
+    for (int i = 0; i < 4; ++i) {
+        obfuscated_trampoline[obfuscated_trampoline.size()-4+i] = (neg_offset_to_second_ep >> (i*8)) & 0xFF;
+    }
 
     add_section(binary, name, Utilities::append_vectors(pre_data_trampoline, obfuscated_trampoline), characteristics);
 
