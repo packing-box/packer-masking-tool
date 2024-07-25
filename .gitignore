@@ -4,7 +4,7 @@
 *.zip
 .vscode
 *.elf
-*.cpp
+/*.cpp
 raw_size_editor
 exe/*
 docs/site/*

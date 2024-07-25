@@ -23,3 +23,5 @@ Once you have installed the dependencies, you can build the tool by running the 
 make
 ```
 
+> By default the Makefile compiles the tool with the LIEF library linked statically, which means the library is embedded into the executable tool to make it more portable but larger. If you want to link it dynamically, you can modify the Makefile accordingly.
+

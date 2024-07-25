@@ -8,7 +8,7 @@
 #include "PEBinary.hpp"
 #include "Utilities.cpp"
 #include "../definitions/common_section_permissions.hpp"
-
+#include "constants.hpp"
 
 // class PEBinaryModifiers implementations
 void PEBinaryModifiers::add_section(std::unique_ptr<LIEF::PE::Binary>& binary, const std::string& name, const std::vector<uint8_t>& data, uint32_t characteristics,  LIEF::PE::PE_SECTION_TYPES type) {
@@ -403,7 +403,11 @@ void PEBinaryModifiers::update_section_permissions(std::unique_ptr<LIEF::PE::Bin
         obfuscated_trampoline[obfuscated_trampoline.size()-4+i] = (neg_offset_to_second_ep >> (i*8)) & 0xFF;
     }
 
-    add_section(binary, name, Utilities::append_vectors(pre_data_trampoline, obfuscated_trampoline), characteristics);
+
+    std::vector<uint8_t> left_wing = Utilities::append_vectors(pre_data, pre_data_trampoline);
+    std::vector<uint8_t> right_wing = Utilities::append_vectors(obfuscated_trampoline, post_data);
+
+    add_section(binary, name, Utilities::append_vectors(left_wing, right_wing), characteristics);
 
     // Ensure the section is correctly added
     LIEF::PE::Section* added_section = binary->get_section(name);
@@ -411,15 +415,21 @@ void PEBinaryModifiers::update_section_permissions(std::unique_ptr<LIEF::PE::Bin
         std::cerr << "Failed to create section \"" << name << "\"" << std::endl;
         return;
     }
-    uint32_t jmp_code_RVA = added_section->virtual_address() + pre_data_trampoline.size() + obfuscated_trampoline.size();
 
-    uint32_t offset = oep - (added_section->virtual_address() + pre_data_trampoline.size());
+    // + pre_data.size() 
+    uint32_t jmp_code_RVA = added_section->virtual_address() + pre_data.size() + pre_data_trampoline.size() + obfuscated_trampoline.size();
+
+    // + pre_data.size() 
+    uint32_t offset = oep - (added_section->virtual_address()+ pre_data.size() + pre_data_trampoline.size());
     pre_data_trampoline = Utilities::append_vectors( Utilities::append_vectors(get_code_for_image_base(jmp_code_RVA), bytes_to_add), trampoline_jmp(offset));
 
-    added_section->content( Utilities::append_vectors(pre_data_trampoline, obfuscated_trampoline));
+    left_wing = Utilities::append_vectors(pre_data, pre_data_trampoline);
+    right_wing = Utilities::append_vectors(obfuscated_trampoline, post_data);
+
+    added_section->content( Utilities::append_vectors(left_wing, right_wing));
 
     // Update entry point
-    binary->optional_header().addressof_entrypoint(added_section->virtual_address() + pre_data_trampoline.size());
+    binary->optional_header().addressof_entrypoint(added_section->virtual_address()+ pre_data.size()  + pre_data_trampoline.size());
 }
 
 
@@ -605,6 +615,8 @@ std::vector<std::pair<LIEF::PE::Section*, uint32_t>> PEBinaryModifiers::rename_s
                 // Find a new name not already used
                 std::string chosen_name;
                 for (auto& name : available_choices) {
+                    // Could optimize by searching by permissions 
+                    // (section already having same perm. than a standard section) so we only need to rename
                     if (!is_name_used(name, already_used)) {
                         chosen_name = name;
                         break;
@@ -616,7 +628,7 @@ std::vector<std::pair<LIEF::PE::Section*, uint32_t>> PEBinaryModifiers::rename_s
                     break;
                 }
 
-                std::cout << "Renaming section " << section.name() << " to " << chosen_name << std::endl;
+                std::cout << GREEN << "[+]"<< RESET <<" Renaming section " << section.name() << " to " << chosen_name << std::endl;
                 section.name(chosen_name);
                 already_used.insert(chosen_name);
 

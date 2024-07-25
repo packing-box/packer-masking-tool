@@ -71,9 +71,39 @@ Other options: (by default the behavior is --permissions --edit-raw-size)
 [+]  Section .data raw size updated to 0x9285
 [+] Section raw size updated successfully!
 
-[SUCCESS]  File saved as: upx_7z_out.exe
+[SUCCESS]  File saved as: input_out.exe
 ```
 
+### Detectors evasion
+
+```bash
+$ manalyze input_out.exe
+-
+
+$ peid input_out.exe
+-
+
+$ peframe input_out.exe
+-
+
+$ reminder input_out.exe
+False
+
+$ retdec input_out.exe
+-
+
+$ pepack input_out.exe
+-
+
+$ bintropy input_out.exe -b -v
+[DEBUG] Average entropy criterion (>6.677): False (5.945434314305998)
+[DEBUG] Highest entropy criterion (>7.199): True (7.222037048843471)
+[DEBUG] Output:
+False
+
+False 0.030065735045354813
+
+```
 
 
 
@@ -86,6 +116,7 @@ To install NotPacked++, you can either download the latest release from the [rel
 
 
 ---
+## Supporters
 
 
 [![Stargazers repo roster for @packing-box/packer-masking-tool](https://reporoster.com/stars/dark/packing-box/packer-masking-tool)](https://github.com/packing-box/packer-masking-tool/stargazers)

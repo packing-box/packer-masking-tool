@@ -1,5 +1,6 @@
 # Quickstart
-~TODO~
+
+
 
 
 ## Usage
@@ -12,47 +13,46 @@
 /_/ |_/\____/\__/_/    \__,_/\___/_/|_|\___/\__,_/ /_/   /_/   
                                                                
 
- Author       :   J. RAMHANI
- Contributor  :   A. D'Hondt
+ Authors      :   Jaber RAMHANI, Alexandre D'Hondt
  Version      :   0.1
- Copyright    :   © 2024
+ Copyright    :   © 2021-2024 Alexandre D'Hondt, Jaber Ramhani
  License      :   GNU General Public License v3.0
 ======================================================
-
 
 Description: This program applies some alterations to a PE file. 
  Note that when no alteration is specified ALL of them will be applied, if at least one is specified only selected ones will be applied
 
-Usage: ./notpacked++ <input_file>
+Usage: ./notpacked++ <input_file> [OPTIONS]
 
-    -o <output_file>  : Set the output file name.
+    -o <output_file>  : Set the output file name. (default:<input_file>_out.exe)
     --help            : Display this help message.
 
-Other options: (by default all of them applies)
-    --add-api         : Add 20 common API imports to the PE file.
-    --fill-zero       : Fill sections with zeros from their raw size to their virtual size.
+Other options: (by default the behavior is --permissions --edit-raw-size)
+    --add-api         : Add 20 common API imports to the PE file. (Rebuilding a functional file not working yet)
     --move-ep         : Move the entry point to a new low entropy section.
     --rename-sections : Rename packer sections to standard section names.
+    --permissions      : Update the permissions of all sections to standard ones (rwx/rw-/..), moves the EP to a new section and renames sections.
+    --edit-raw-size    : Edit the raw size value in the header of sections having a 0 raw size (without adding real data bytes).
 
 ```
 
 ### Use case 1: All alterations
 `notpacked++ input.exe`
-This will apply all alterations to the input file.
+This will apply the following alterations to the input file : 
+
+- `--permissions`: Update the permissions of the sections to standard permissions (read, write, execute). This alteration also moves the entry point to a new section and renames sections.
+- `--edit-raw-size`: Edit the raw size value in the header of sections having a 0 raw size (without adding real data bytes).
 
 ### Use case 2: Selected alterations
-`notpacked++ input.exe --add-api --fill-zero`
+`notpacked++ input.exe --rename-sections --move-ep`
 
 This will only apply the following :
 
-- `--add-api`: Add 20 common API imports
-- `--fill-zero`: Fill sections with zeros from their raw size to their virtual size.
+- `--rename-sections`: Rename packer sections to standard section names.
+- `--move-ep`: Move the entry point to a new low entropy section.
 
 ### Use case 3: Output file
 `notpacked++ input.exe -o output.exe`
 
-> Note: If no output file is specified, the output file will be named `output_<inputFilename>.exe`
+> Note: If no output file is specified, the output file will be named `<inputFilename>_out.exe`
 
-### Soon to come
-- Support for input via pipe
-`ls | notpacked++`

@@ -21,11 +21,12 @@ void header(){
 
 )";
     // author, copy right, version
-    std::cout << GRAY << ITALIC << " Author       :   J. RAMHANI" << std::endl;
-    std::cout <<  " Contributor  :   A. D'Hondt" << std::endl;
-    std::cout <<  " Version      :   0.1" << std::endl;
-    std::cout <<  " Copyright    :   © 2021-2024 Alexandre D'Hondt, Jaber Ramhani" << std::endl;
-    std::cout <<  " License      :   GNU General Public License v3.0" << std::endl;
+    std::cout << GRAY << ITALIC 
+                <<  " Authors      :   Jaber RAMHANI, Alexandre D'Hondt" << std::endl;
+    //std::cout   <<  " Contributor  :   A. D'Hondt" << std::endl;
+    std::cout   <<  " Version      :   0.1" << std::endl;
+    std::cout   <<  " Copyright    :   © 2021-2024 Alexandre D'Hondt, Jaber Ramhani" << std::endl;
+    std::cout   <<  " License      :   GNU General Public License v3.0" << std::endl;
     std::cout << GRAY << "======================================================" << RESET << std::endl;
     std::cout << std::endl;
 }
@@ -44,13 +45,13 @@ void help(const char* program_name){
     std::cerr << std::endl;
 
     // possible options
-    std::cerr << "Other options: (by default all of them applies)" << std::endl;
-    std::cerr << "    --add-api         : Add 20 common API imports to the PE file." << std::endl;
+    std::cerr << "Other options: (by default the behavior is --permissions --edit-raw-size)" << std::endl;
+    std::cerr << "    --add-api         : Add 20 common API imports to the PE file. (Rebuilding a functional file not working yet)" << std::endl;
     //std::cerr << "    --fill-zero       : Fill sections with zeros from their raw size to their virtual size." << std::endl;
     std::cerr << "    --move-ep         : Move the entry point to a new low entropy section." << std::endl;
     std::cerr << "    --rename-sections : Rename packer sections to standard section names." << std::endl;
     
-    std::cerr << "    --permissions      : Update the permissions of all sections to standard ones (rwx/rw-/..) and move the entry point to a new section." << std::endl;
+    std::cerr << "    --permissions      : Update the permissions of all sections to standard ones (rwx/rw-/..), moves the EP to a new section and renames sections." << std::endl;
 
     std::cerr << "    --edit-raw-size    : Edit the raw size value in the header of sections having a 0 raw size (without adding real data bytes)." << std::endl;
 
@@ -87,6 +88,7 @@ int main( int argc, char **argv) {
     PEBinary binary(input);
 
     // =======================================
+    bool edited_iat = false;
     bool at_least_one_alteration = false;
     for(int i = 0; i < argc; i++){
         if (std::strcmp(argv[i], "-o") == 0)
@@ -101,6 +103,7 @@ int main( int argc, char **argv) {
             at_least_one_alteration = true;
 
             PEBinaryAlterations::add_20_common_api_imports(binary);
+            edited_iat = true;
         } 
         /*else if (std::strcmp(argv[i], "--fill-zero") == 0)
         {
@@ -174,14 +177,16 @@ int main( int argc, char **argv) {
     // =======================================
     // Save the modified PE file
     LIEF::PE::Builder builder(*binary.get());
-
-    //builder.patch_imports(true); 
-    //builder.build_imports(true); // This adds .l1 section (and breaks the executable)
+    if(edited_iat){
+        builder.patch_imports(true);
+        builder.build_imports(true);
+        //builder.patch_imports(true); 
+        //builder.build_imports(true); // This adds .l1 section (and breaks the executable)
+    }
     builder.build();
     builder.write(output_file_name);
 
-
-    std::cout << GREEN << "[SUCCESS] \033[0m File saved as: " << output_file_name << RESET << std::endl;
+    std::cout << std::endl <<  GREEN << "[SUCCESS] \033[0m File saved as: " << output_file_name << RESET << std::endl;
 
     return 0;
 }
