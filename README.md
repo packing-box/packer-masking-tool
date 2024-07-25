@@ -29,27 +29,26 @@ In the current version, the tool focuses on the PE file format and the most comm
 /_/ |_/\____/\__/_/    \__,_/\___/_/|_|\___/\__,_/ /_/   /_/   
                                                                
 
- Author       :   J. RAMHANI
- Contributor  :   A. D'Hondt
+ Authors      :   Jaber RAMHANI, Alexandre D'Hondt
  Version      :   0.1
- Copyright    :   © 2024
+ Copyright    :   © 2021-2024 Alexandre D'Hondt, Jaber Ramhani
  License      :   GNU General Public License v3.0
 ======================================================
 
-
 Description: This program applies some alterations to a PE file. 
- Note that when no alteration is specified ALL non-overlapping alterations will be applied, if at least one is specified only selected ones will be applied
+ Note that when no alteration is specified ALL of them will be applied, if at least one is specified only selected ones will be applied
 
-Usage: ./notpacked++ <input_file>
+Usage: ./notpacked++ <input_file> [OPTIONS]
 
-    -o <output_file>  : Set the output file name.
+    -o <output_file>  : Set the output file name. (default:<input_file>_out.exe)
     --help            : Display this help message.
 
-Other options: (by default all of them applies)
-    --add-api         : Add 20 common API imports to the PE file.
-    --fill-zero       : Fill sections with zeros from their raw size to their virtual size.
+Other options: (by default the behavior is --permissions --edit-raw-size)
+    --add-api         : Add 20 common API imports to the PE file. (Rebuilding a functional file not working yet)
     --move-ep         : Move the entry point to a new low entropy section.
     --rename-sections : Rename packer sections to standard section names.
+    --permissions      : Update the permissions of all sections to standard ones (rwx/rw-/..), moves the EP to a new section and renames sections.
+    --edit-raw-size    : Edit the raw size value in the header of sections having a 0 raw size (without adding real data bytes).
 
 ```
 
@@ -57,19 +56,36 @@ Other options: (by default all of them applies)
 
 
 ---
-## Building your version
+## Example of usage
 
-```sh
-make
+`notpacked++ input.exe`
+
+```
+<<snipped>>
+
+[INFO]   Updating the permissions of all sections to standard ones (rwx/rw-/..), moving the entry point to a new section and Renaming sections to standard ones...
+[+] Renaming section UPX0 to .data
+[+] Renaming section UPX1 to .rdata
+
+[INFO]   Editing the raw size value in the header of sections having a 0 raw size (without adding real data bytes)...
+[+]  Section .data raw size updated to 0x9285
+[+] Section raw size updated successfully!
+
+[SUCCESS]  File saved as: upx_7z_out.exe
 ```
 
-### Dependencies
 
-- LIEF
 
-### Installation of LIEF
-> It may ask for ROOT privileges to install the dependencies
-```sh
-./install.sh
-```
 
+
+## Installation
+
+To install NotPacked++, you can either download the latest release from the [releases page](https://github.com/packing-box/packer-masking-tool/releases) or build it from source. 
+
+> Please refer to the [documentation](https://packer-masking-tool.readthedocs.io/en/latest/?badge=latest) for a full guide to build the tool from source.
+
+
+---
+
+
+[![Stargazers repo roster for @packing-box/packer-masking-tool](https://reporoster.com/stars/dark/packing-box/packer-masking-tool)](https://github.com/packing-box/packer-masking-tool/stargazers)
