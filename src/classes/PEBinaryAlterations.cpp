@@ -49,7 +49,7 @@ public:
 
             size_t nb_deadcode = Utilities::get_random_number(2, 64);
             // generate random number between
-            // TODO: use pre_data and post_data
+            // TODO: first check if the permissions are already set correctly
             binary.update_section_permissions(pre_data, post_data, nb_deadcode);
         }
         catch(const std::exception& e)
@@ -63,7 +63,7 @@ public:
         std::cout <<std::endl<< YELLOW << "[INFO]  \033[0m Editing the raw size value in the header of sections having a 0 raw size (without adding real data bytes)..." << RESET << std::endl;
 
         // Description: Edit the raw size of sections in the header
-        std::string file_path = binary.get_filename().c_str();
+        std::string file_path = binary.get_filename();
 
         RawSizeEditor editor(file_path.c_str());
         size_t total_added_raw_size = editor.edit(0.9, true);
@@ -105,7 +105,12 @@ public:
         for(LIEF::PE::Section& section : binary.get_sections()){
             size_to_fill = section.virtual_size() - section.sizeof_raw_data();
             if(size_to_fill > 0){
-                binary.append_to_section(section.name(), std::vector<uint8_t>(size_to_fill, 0));
+                std::vector<uint8_t> data_fill = Utilities::generateRandomBytes(3);
+                std::vector<uint8_t> data(size_to_fill);
+                for(size_t i = 0; i < size_to_fill; i++){
+                    data.push_back(data_fill[i % 3]);
+                }
+                binary.append_to_section(section.name(), data);
             }
         }
     }

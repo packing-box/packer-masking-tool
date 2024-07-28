@@ -13,7 +13,7 @@ NotPacked++ can perform the following alterations on the input binary:
 
 ### Add API imports
 
-The `--add-api` option adds 20 API imports commonly found in not packed executables to the input PE file, as many packers only have a few imports in the IAT. 
+The `--add-api` option adds 20 API imports commonly found in not packed executables to the input PE file, as many packers only have a few imports in the IAT. The LIEF library we use adds a new section named '.l1' when adding the API imports, thus we recommend using it along with the `--permissions` or the `--rename-sections` option to rename that section to a standard name.
 
 >**NOTE** : This option is still under development and does not yet rebuild a functional file (because of LIEF current implementation). Thus the resulting file will not be functional.
 

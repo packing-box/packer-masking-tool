@@ -47,15 +47,30 @@ void help(const char* program_name){
     // possible options
     std::cerr << "Other options: (by default the behavior is --permissions --edit-raw-size)" << std::endl;
     std::cerr << "    --add-api         : Add 20 common API imports to the PE file. (Rebuilding a functional file not working yet)" << std::endl;
-    //std::cerr << "    --fill-zero       : Fill sections with zeros from their raw size to their virtual size." << std::endl;
+    //std::cerr << "    --fill-sections       : Fill sections with zeros from their raw size to their virtual size." << std::endl;
     std::cerr << "    --move-ep         : Move the entry point to a new low entropy section." << std::endl;
     std::cerr << "    --rename-sections : Rename packer sections to standard section names." << std::endl;
     
     std::cerr << "    --permissions      : Update the permissions of all sections to standard ones (rwx/rw-/..), moves the EP to a new section and renames sections." << std::endl;
 
-    std::cerr << "    --edit-raw-size    : Edit the raw size value in the header of sections having a 0 raw size (without adding real data bytes)." << std::endl;
+    std::cerr << "    --raw-size    : Edit the raw size value in the header of sections having a 0 raw size (without adding real data bytes)." << std::endl;
 
     std::cerr << std::endl;
+}
+
+
+void build_and_write(PEBinary& binary, std::string output_file_name, bool& edited_iat){
+    LIEF::PE::Builder builder(*binary.get());
+    builder.build_overlay(true);
+
+    if(edited_iat){
+        builder.patch_imports(true);
+        builder.build_imports(true); // This adds .l1 section (and breaks the executable)
+        edited_iat = false;
+    }
+    
+    builder.build();
+    builder.write(output_file_name);
 }
 
 
@@ -85,6 +100,7 @@ int main( int argc, char **argv) {
 
     // =======================================
     // Load the PE file
+
     PEBinary binary(input);
 
     // =======================================
@@ -104,12 +120,16 @@ int main( int argc, char **argv) {
 
             PEBinaryAlterations::add_20_common_api_imports(binary);
             edited_iat = true;
+            build_and_write(binary, output_file_name, edited_iat);
+
+            binary = PEBinary(output_file_name);
+            
         } 
-        /*else if (std::strcmp(argv[i], "--fill-zero") == 0)
+        else if (std::strcmp(argv[i], "--fill-sections") == 0)
         {
             at_least_one_alteration = true;
             PEBinaryAlterations::fill_sections_with_zeros(binary);
-        } */
+        }
         else if (std::strcmp(argv[i], "--move-ep") == 0)
         {
             at_least_one_alteration = true;
@@ -124,18 +144,17 @@ int main( int argc, char **argv) {
             at_least_one_alteration = true;
             PEBinaryAlterations::update_section_permissions_and_move_ep(binary);
         }
-        else if (std::strcmp(argv[i], "--edit-raw-size") == 0)
+        else if (std::strcmp(argv[i], "--raw-size") == 0)
         {
             at_least_one_alteration = true;
-            LIEF::PE::Builder builder(*binary.get());
-            //builder.patch_imports(true);
-            //builder.build_imports(true); // This adds .l1 section (and breaks the executable)
-            builder.build();
-            builder.write(output_file_name);
+            build_and_write(binary, output_file_name, edited_iat);
 
             binary = PEBinary(output_file_name);
 
             PEBinaryAlterations::edit_raw_size_of_sections_in_header(binary);
+
+            binary = PEBinary(output_file_name);
+
         }
         
     }
@@ -155,18 +174,18 @@ int main( int argc, char **argv) {
 
         // It moves the entry point to a new section and updates the permissions of all sections
         // And also renames the packer sections to standard section names
+        
         PEBinaryAlterations::update_section_permissions_and_move_ep(binary);
 
-
-        LIEF::PE::Builder builder(*binary.get());
-        //builder.patch_imports(true);
-        //builder.build_imports(true); // This adds .l1 section (and breaks the executable)
-        builder.build();
-        builder.write(output_file_name);
+        build_and_write(binary, output_file_name, edited_iat);
 
         binary = PEBinary(output_file_name);
 
         PEBinaryAlterations::edit_raw_size_of_sections_in_header(binary);
+
+        //binary = PEBinary(output_file_name);
+        std::cout << std::endl <<  GREEN << "[SUCCESS] \033[0m File saved as: " << output_file_name << RESET << std::endl;
+        return 0;
     }
     
     
@@ -176,15 +195,7 @@ int main( int argc, char **argv) {
 
     // =======================================
     // Save the modified PE file
-    LIEF::PE::Builder builder(*binary.get());
-    if(edited_iat){
-        builder.patch_imports(true);
-        builder.build_imports(true);
-        //builder.patch_imports(true); 
-        //builder.build_imports(true); // This adds .l1 section (and breaks the executable)
-    }
-    builder.build();
-    builder.write(output_file_name);
+    build_and_write(binary, output_file_name, edited_iat);
 
     std::cout << std::endl <<  GREEN << "[SUCCESS] \033[0m File saved as: " << output_file_name << RESET << std::endl;
 
