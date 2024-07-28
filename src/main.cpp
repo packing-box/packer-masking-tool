@@ -45,7 +45,7 @@ void help(const char* program_name){
     std::cerr << std::endl;
 
     // possible options
-    std::cerr << "Other options: (by default the behavior is --permissions --edit-raw-size)" << std::endl;
+    std::cerr << "Other options: (by default the behavior is --permissions --raw-size)" << std::endl;
     std::cerr << "    --add-api         : Add 20 common API imports to the PE file. (Rebuilding a functional file not working yet)" << std::endl;
     //std::cerr << "    --fill-sections       : Fill sections with zeros from their raw size to their virtual size." << std::endl;
     std::cerr << "    --move-ep         : Move the entry point to a new low entropy section." << std::endl;

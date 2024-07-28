@@ -7,7 +7,7 @@ NotPacked++ can perform the following alterations on the input binary:
 - `--move-ep`: Move the entry point to a new low entropy section.
 - `--rename-sections`: Rename packer sections to standard section names.
 - `--permissions`: Change the permissions of the sections to standard permissions (read, write, execute).
-- `--edit-raw-size`: Edit the raw size value in the header of sections having a 0 raw size (without adding real data bytes).
+- `--raw-size`: Edit the raw size value in the header of sections having a 0 raw size (without adding real data bytes).
 
 
 
