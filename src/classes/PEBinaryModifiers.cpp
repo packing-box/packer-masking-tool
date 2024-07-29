@@ -76,7 +76,7 @@ struct SectionData {
 
 
 void PEBinaryModifiers::append_to_section(std::unique_ptr<LIEF::PE::Binary>& binary, const std::string& section_name, const std::vector<uint8_t>& data) {
-    auto* section = binary->get_section(section_name);
+    LIEF::PE::Section* section = binary->get_section(section_name);
     if (!section) {
         std::cerr << "Section not found: " << section_name << std::endl;
         return;
@@ -87,18 +87,17 @@ void PEBinaryModifiers::append_to_section(std::unique_ptr<LIEF::PE::Binary>& bin
     size_t file_alignment = binary->optional_header().file_alignment();
 
     size_t available_size = (section_virtual_size > section_content_size) ? section_virtual_size - section_content_size : 0;
-    std::vector<uint8_t> data_to_append = data;
+    std::vector<uint8_t> data_to_append = std::vector<uint8_t>(data.begin(), data.end());
 
     if (available_size == 0) {
-        std::cerr << "No available space in section: " << section_name << std::endl;
+        std::cerr << "[!] No available space in section: " << section_name << std::endl;
         return;
     } else if (data_to_append.size() > available_size) {
         data_to_append.resize(available_size);
-        std::cerr << "Truncating data to fit available space: " << available_size << " bytes" << std::endl;
+        std::cerr << "[.] Truncating data to fit available space: " << available_size << " bytes" << std::endl;
     }
 
     if (section_content_size == 0 && section->size() == 0) {
-        std::cerr << "Completely recreating sections" << std::endl;
 
         std::vector<SectionData> sections_data;
         std::vector<LIEF::PE::Section> sections;
@@ -109,41 +108,34 @@ void PEBinaryModifiers::append_to_section(std::unique_ptr<LIEF::PE::Binary>& bin
         });
         for (LIEF::PE::Section& s : sections_current) {
             sections.push_back(s);
-            SectionData sd;
-            sd.name = s.name();
-            sd.virtual_address = s.virtual_address();
-            sd.size = s.size();
-            sd.virtual_size = s.virtual_size();
-            sd.characteristics = s.characteristics();
-            sd.content = std::vector<uint8_t>(s.content().begin(), s.content().end());
-            if(s.name() == section_name){
-                sd.content = data_to_append;
-                sd.size = data_to_append.size();
-                sd.virtual_size = section_virtual_size;
-            }
-            sections_data.push_back(sd);
         }
 
-        //binary->remove_all_sections();
+        // remove_all_sections (in reverse order)
+        std::reverse(sections_current.begin(), sections_current.end());
         for (LIEF::PE::Section& s : sections_current) {
             binary->remove_section(s.name());
-        }// TODO: check i can put it in the for loop above
+        }
 
-        for (auto& sd : sections_data) {
-            if (sd.name == section_name) {
-                sd.content = data_to_append;
-                sd.size = data_to_append.size();
-                sd.virtual_size = section_virtual_size;
+        size_t point_to_raw_data = 0;
+        for (LIEF::PE::Section& sd : sections) {
+            if (sd.name() == section_name) {
+                // align the section size to file alignment
+                size_t new_size = sd.size() + data_to_append.size();
+                sd.size(new_size + ((file_alignment - (new_size % file_alignment)) % file_alignment));
+                // append the data to the section content
+                sd.content(data_to_append);
             }
-            // resize content to be aligned with file alignment (equivalent: sd['content'] + [0] * (fa-len(sd['content']) % fa))
-            sd.content.resize(sd.content.size() + ((file_alignment - (sd.content.size() % file_alignment))), 0);
-            LIEF::PE::Section new_section(sd.name);
-            new_section.content(sd.content);
-            new_section.virtual_address(sd.virtual_address);
-            new_section.size(sd.size);
-            new_section.virtual_size(sd.virtual_size);
-            new_section.characteristics(sd.characteristics);
-            binary->add_section(new_section);
+
+            if(point_to_raw_data == 0){
+                point_to_raw_data = sd.pointerto_raw_data();
+            }else{
+                sd.pointerto_raw_data(point_to_raw_data);
+            }
+            point_to_raw_data += sd.size();
+            if(point_to_raw_data % file_alignment != 0){
+                point_to_raw_data += file_alignment - (point_to_raw_data % file_alignment);
+            }
+            binary->add_section(sd);            
         }
     } else {
         LIEF::span<const u_int8_t> section_content_tmp = section->content();
@@ -151,15 +143,9 @@ void PEBinaryModifiers::append_to_section(std::unique_ptr<LIEF::PE::Binary>& bin
         // Append the data to the section content
         section_content.insert(section_content.end(), data_to_append.begin(), data_to_append.end());
         size_t new_size = section_content.size();
-        section_content.resize(new_size + ((file_alignment - (new_size % file_alignment))), 0);
         section->content(section_content);
         section->size(new_size);
     }
-
-    LIEF::span<const u_int8_t> overlay_content_tmp = binary->overlay();
-    std::vector<uint8_t> overlay_content(overlay_content_tmp.begin(), overlay_content_tmp.end());
-    overlay_content.insert(overlay_content.end(), data_to_append.begin(), data_to_append.end());
-    binary->overlay() = overlay_content;
 }
 
 bool xappend_to_section(std::unique_ptr<LIEF::PE::Binary>& binary, const std::string& section_name, const std::vector<uint8_t>& data) {

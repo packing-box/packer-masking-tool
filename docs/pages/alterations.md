@@ -8,6 +8,7 @@ NotPacked++ can perform the following alterations on the input binary:
 - `--rename-sections`: Rename packer sections to standard section names.
 - `--permissions`: Change the permissions of the sections to standard permissions (read, write, execute).
 - `--raw-size`: Edit the raw size value in the header of sections having a 0 raw size (without adding real data bytes).
+- `--fill-sections`: Fill sections with zeros from their raw size to their virtual size.
 
 
 
@@ -36,7 +37,12 @@ The `--permissions` option updates the permissions of all sections to standard o
 
 ### Edit raw size
 
-The `--edit-raw-size` option edits the raw size value in the header for sections having a 0 raw size value. This alteration does not add real data bytes to the sections, it only changes the raw size value in the section header. This alteration maintains the file's functionality and can be used to confuse detectors that rely on the raw size value equal to 0 to detect packers.
+The `--raw-size` option edits the raw size value in the header for sections having a 0 raw size value. This alteration does not add real data bytes to the sections, it only changes the raw size value in the section header without increasing the file size. This alteration maintains the file's functionality and can be used to confuse detectors that rely on the raw size value equal to 0 to detect packers.
+
+
+### Fill sections
+
+The `--fill-sections` option fills sections with zeros from their raw size to their virtual size. The resulting sections will have the same raw and virtual size values. 
 
 
 

@@ -101,10 +101,11 @@ public:
 
     static void fill_sections_with_zeros(PEBinary& binary){
         // Description: Stretch sections with zeros from their raw size to their virtual size
-        size_t size_to_fill = 0;
+        size_t size_to_fill = 0; // its unsigned !!
+        std::cout <<std::endl<< YELLOW << "[INFO]  \033[0m Filling sections with zeros from their raw size to their virtual size..." << RESET << std::endl;
         for(LIEF::PE::Section& section : binary.get_sections()){
             size_to_fill = section.virtual_size() - section.sizeof_raw_data();
-            if(size_to_fill > 0){
+            if(size_to_fill > 0 && section.virtual_size() > section.sizeof_raw_data()){
                 std::vector<uint8_t> data_fill = Utilities::generateRandomBytes(3);
                 std::vector<uint8_t> data(size_to_fill);
                 for(size_t i = 0; i < size_to_fill; i++){
@@ -113,6 +114,7 @@ public:
                 binary.append_to_section(section.name(), data);
             }
         }
+        // std::cerr << RED << "[WARNING] \033[0m Currently filling sections with zeros does NOT ALWAYS maintain the executable functionality..." << RESET << std::endl;
     }
 
     static void add_low_entropy_text_section(PEBinary& binary){

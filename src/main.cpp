@@ -47,11 +47,11 @@ void help(const char* program_name){
     // possible options
     std::cerr << "Other options: (by default the behavior is --permissions --raw-size)" << std::endl;
     std::cerr << "    --add-api         : Add 20 common API imports to the PE file. (Rebuilding a functional file not working yet)" << std::endl;
-    //std::cerr << "    --fill-sections       : Fill sections with zeros from their raw size to their virtual size." << std::endl;
+    std::cerr << "    --fill-sections   : Fill sections with zeros from their raw size to their virtual size." << std::endl;
     std::cerr << "    --move-ep         : Move the entry point to a new low entropy section." << std::endl;
     std::cerr << "    --rename-sections : Rename packer sections to standard section names." << std::endl;
     
-    std::cerr << "    --permissions      : Update the permissions of all sections to standard ones (rwx/rw-/..), moves the EP to a new section and renames sections." << std::endl;
+    std::cerr << "    --permissions     : Update the permissions of all sections to standard ones (rwx/rw-/..), moves the EP to a new section and renames sections." << std::endl;
 
     std::cerr << "    --raw-size    : Edit the raw size value in the header of sections having a 0 raw size (without adding real data bytes)." << std::endl;
 
