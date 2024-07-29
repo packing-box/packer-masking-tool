@@ -678,6 +678,11 @@ std::vector<std::pair<LIEF::PE::Section*, uint32_t>> PEBinaryModifiers::rename_s
         std::unordered_set<std::string> already_used = {".text"}; // Initialize with default used names
         std::vector<std::string> available_choices;
 
+        // add current section names to already_used
+        for (const auto& section : binary.sections()) {
+            already_used.insert(section.name());
+        }
+
         // Mapping from names to characteristics for fast lookup
         std::unordered_map<std::string, LIEF::PE::Section::CHARACTERISTICS> permissions_map;
         for (const auto& [name, characteristics] : common_sections_permissions) {
