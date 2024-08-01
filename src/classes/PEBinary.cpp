@@ -270,8 +270,8 @@ void PEBinary::rename_section( const std::string &section_name, const std::strin
     PEBinaryModifiers::rename_section(pe, section_name, new_name);
 }
 
-bool PEBinary::append_to_section( const std::string& section_name, const std::vector<uint8_t>& data){
-    return PEBinaryModifiers::append_to_section(pe, section_name, data);
+void PEBinary::append_to_section( const std::string& section_name, const std::vector<uint8_t>& data){
+    PEBinaryModifiers::append_to_section(pe, section_name, data);
 }
 
 void PEBinary::move_entrypoint_to_new_section( const std::string& name, uint32_t characteristics, const std::vector<uint8_t>& pre_data, const std::vector<uint8_t>& post_data) {

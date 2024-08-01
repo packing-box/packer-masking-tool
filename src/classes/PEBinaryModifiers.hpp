@@ -23,7 +23,7 @@ public:
     static void rename_sections(std::unique_ptr<LIEF::PE::Binary>& binary, const std::vector<std::string> &section_names, const std::vector<std::string> &new_names);
 
 
-    static bool append_to_section(std::unique_ptr<LIEF::PE::Binary>& binary, const std::string& section_name, const std::vector<uint8_t>& data);
+    static void append_to_section(std::unique_ptr<LIEF::PE::Binary>& binary, const std::string& section_name, const std::vector<uint8_t>& data);
 
     // Function to move the entry point to a new section
     static void move_entrypoint_to_new_section(std::unique_ptr<LIEF::PE::Binary>& binary, 

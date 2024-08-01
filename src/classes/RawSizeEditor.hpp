@@ -11,7 +11,7 @@
 #pragma pack(push, 1) // this line
 
 struct DOSHeader {
-    uint16_t e_magic;
+    uint16_t e_magic; // Magic number: 0x5A4D
     uint16_t e_cblp;
     uint16_t e_cp;
     uint16_t e_crlc;
@@ -33,7 +33,7 @@ struct DOSHeader {
 };
 
 struct PEHeader {
-    uint32_t Signature;
+    uint32_t Signature; // PE\0\0
     uint16_t Machine;
     uint16_t NumberOfSections;
     uint32_t TimeDateStamp;
@@ -44,7 +44,7 @@ struct PEHeader {
 };
 
 struct OptionalHeader {
-    uint16_t Magic;
+    uint16_t Magic; // 0x10B - PE32, 0x20B - PE32+
     uint8_t MajorLinkerVersion;
     uint8_t MinorLinkerVersion;
     uint32_t SizeOfCode;
@@ -97,14 +97,14 @@ struct SectionHeader {
 
 class RawSizeEditor {
 public:
-    RawSizeEditor(const char* filePath);
+    RawSizeEditor(std::string filePath);
 
     void addOverlay(size_t overlaySize);
 
     size_t edit(float rawSizePercentage = 0.8, bool modeMaxFileSize = false, bool modeAllSections = false) ;
 
 private:
-    const char* filePath;
+    std::string filePath;
 
 
     size_t updateSectionHeaders(float rawSizePercentage = 0.0, bool modeMaxFileSize = false, bool modeAllSections = false);

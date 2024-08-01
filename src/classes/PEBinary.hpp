@@ -35,7 +35,7 @@ public:
     void add_API_to_IAT(const std::pair<std::string, std::string>& api_import);
     void add_section(const std::string& name, const std::vector<uint8_t>& data, uint32_t characteristics=0, LIEF::PE::PE_SECTION_TYPES type=LIEF::PE::PE_SECTION_TYPES::TEXT);
     void rename_section(const std::string &section_name, const std::string &new_name);
-    bool append_to_section(const std::string& section_name, const std::vector<uint8_t>& data);
+    void append_to_section(const std::string& section_name, const std::vector<uint8_t>& data);
     void move_entrypoint_to_new_section(const std::string& name, uint32_t characteristics=0, const std::vector<uint8_t>& pre_data={}, const std::vector<uint8_t>& post_data={});
     void move_entrypoint_to_slack_space(const std::string& section_name);
     bool set_checksum(uint32_t checksum);

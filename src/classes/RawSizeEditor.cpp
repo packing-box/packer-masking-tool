@@ -2,7 +2,7 @@
 #include "constants.hpp"
 
 
-RawSizeEditor::RawSizeEditor(const char* filePath) : filePath(filePath) {}
+RawSizeEditor::RawSizeEditor(std::string filePath) : filePath(filePath) {}
 
 void RawSizeEditor::addOverlay(size_t overlaySize) {
     if (overlaySize == 0) {
@@ -48,14 +48,25 @@ size_t RawSizeEditor::updateSectionHeaders(float rawSizePercentage , bool modeMa
 
     DOSHeader dosHeader;
     file.read(reinterpret_cast<char*>(&dosHeader), sizeof(DOSHeader));
+    // verify magic number
+    if (dosHeader.e_magic != 0x5A4D) {
+        std::cerr << RED << "[!] Invalid DOS header magic number!" << RESET << std::endl;
+        return 0;
+    }
 
     file.seekg(dosHeader.e_lfanew, std::ios::beg);
 
     PEHeader peHeader;
     file.read(reinterpret_cast<char*>(&peHeader), sizeof(PEHeader));
 
-    OptionalHeader optionalHeader;
-    file.read(reinterpret_cast<char*>(&optionalHeader), sizeof(OptionalHeader));
+    // verify magic number
+    if (peHeader.Signature != 0x4550) { // "PE\0\0"
+        std::cerr << RED << "[!] Invalid PE header magic number!" << RESET << std::endl;
+        return 0;
+    }
+
+    std::vector<uint8_t> optionalHeaderData(peHeader.SizeOfOptionalHeader);
+    file.read(reinterpret_cast<char*>(optionalHeaderData.data()), peHeader.SizeOfOptionalHeader);
 
     int numberOfSections = peHeader.NumberOfSections;
     int sectionHeadersOffset = dosHeader.e_lfanew + sizeof(PEHeader) + peHeader.SizeOfOptionalHeader;
@@ -67,14 +78,14 @@ size_t RawSizeEditor::updateSectionHeaders(float rawSizePercentage , bool modeMa
     file.close();
     bool updated = false;
     size_t sum_file_size = 0;
-    for (auto& section : sectionHeaders) {
+    for (SectionHeader& section : sectionHeaders) {
         sum_file_size += section.SizeOfRawData;
     }
 
     size_t sum_raw_size = 0;
     size_t section_size_tmp = 0;
 
-    for (auto& section : sectionHeaders) {
+    for (SectionHeader& section : sectionHeaders) {
         section_size_tmp = section.SizeOfRawData;
 
         // if raw size of section is 0, set it to 99% of the maximum raw size allowed

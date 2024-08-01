@@ -64,8 +64,91 @@ void PEBinaryModifiers::rename_sections(std::unique_ptr<LIEF::PE::Binary>& binar
     }
 }
 
+struct SectionData {
+    std::string name;
+    uint32_t virtual_address;
+    uint32_t size;
+    uint32_t virtual_size;
+    uint32_t characteristics;
+    std::vector<uint8_t> content;
+    bool modified = false;
+};
 
-bool PEBinaryModifiers::append_to_section(std::unique_ptr<LIEF::PE::Binary>& binary, const std::string& section_name, const std::vector<uint8_t>& data) {
+
+void PEBinaryModifiers::append_to_section(std::unique_ptr<LIEF::PE::Binary>& binary, const std::string& section_name, const std::vector<uint8_t>& data) {
+    LIEF::PE::Section* section = binary->get_section(section_name);
+    if (!section) {
+        std::cerr << "Section not found: " << section_name << std::endl;
+        return;
+    }
+
+    size_t section_content_size = section->size();
+    size_t section_virtual_size = section->virtual_size();
+    size_t file_alignment = binary->optional_header().file_alignment();
+
+    size_t available_size = (section_virtual_size > section_content_size) ? section_virtual_size - section_content_size : 0;
+    std::vector<uint8_t> data_to_append = std::vector<uint8_t>(data.begin(), data.end());
+
+    if (available_size == 0) {
+        std::cerr << "[!] No available space in section: " << section_name << std::endl;
+        return;
+    } else if (data_to_append.size() > available_size) {
+        data_to_append.resize(available_size);
+        std::cerr << "[.] Truncating data to fit available space: " << available_size << " bytes" << std::endl;
+    }
+
+    if (section_content_size == 0 && section->size() == 0) {
+
+        std::vector<SectionData> sections_data;
+        std::vector<LIEF::PE::Section> sections;
+        std::vector<LIEF::PE::Section> sections_current = std::vector<LIEF::PE::Section>(binary->sections().begin(), binary->sections().end());
+        // sort sections by virtual address
+        std::sort(sections_current.begin(), sections_current.end(), [](const LIEF::PE::Section& a, const LIEF::PE::Section& b) {
+            return a.virtual_address() < b.virtual_address();
+        });
+        for (LIEF::PE::Section& s : sections_current) {
+            sections.push_back(s);
+        }
+
+        // remove_all_sections (in reverse order)
+        std::reverse(sections_current.begin(), sections_current.end());
+        for (LIEF::PE::Section& s : sections_current) {
+            binary->remove_section(s.name());
+        }
+
+        size_t point_to_raw_data = 0;
+        for (LIEF::PE::Section& sd : sections) {
+            if (sd.name() == section_name) {
+                // align the section size to file alignment
+                size_t new_size = sd.size() + data_to_append.size();
+                sd.size(new_size + ((file_alignment - (new_size % file_alignment)) % file_alignment));
+                // append the data to the section content
+                sd.content(data_to_append);
+            }
+
+            if(point_to_raw_data == 0){
+                point_to_raw_data = sd.pointerto_raw_data();
+            }else{
+                sd.pointerto_raw_data(point_to_raw_data);
+            }
+            point_to_raw_data += sd.size();
+            if(point_to_raw_data % file_alignment != 0){
+                point_to_raw_data += file_alignment - (point_to_raw_data % file_alignment);
+            }
+            binary->add_section(sd);            
+        }
+    } else {
+        LIEF::span<const u_int8_t> section_content_tmp = section->content();
+        std::vector<uint8_t> section_content(section_content_tmp.begin(), section_content_tmp.end());
+        // Append the data to the section content
+        section_content.insert(section_content.end(), data_to_append.begin(), data_to_append.end());
+        size_t new_size = section_content.size();
+        section->content(section_content);
+        section->size(new_size);
+    }
+}
+
+bool xappend_to_section(std::unique_ptr<LIEF::PE::Binary>& binary, const std::string& section_name, const std::vector<uint8_t>& data) {
     auto* section = binary->get_section(section_name);
     if (section == nullptr) {
         std::cerr << "Section \"" << section_name << "\" not found." << std::endl;
@@ -446,6 +529,7 @@ std::vector<uint8_t> PEBinaryModifiers::get_code_for_image_base(uint32_t rva) {
 std::vector<uint8_t> PEBinaryModifiers::call_virtualProtect(uint64_t vp_address, uint64_t address, uint64_t size, uint32_t vp_flag, bool is_64_bit) {
     std::vector<uint8_t> bytes_array;
 
+    //TODO: this part also needs randomization (deadcode insertion)
     if (is_64_bit) {
         // 64-bit code
         bytes_array = {
@@ -593,6 +677,11 @@ std::vector<std::pair<LIEF::PE::Section*, uint32_t>> PEBinaryModifiers::rename_s
         std::vector<std::pair<LIEF::PE::Section*, uint32_t>> sections_edited;
         std::unordered_set<std::string> already_used = {".text"}; // Initialize with default used names
         std::vector<std::string> available_choices;
+
+        // add current section names to already_used
+        for (const auto& section : binary.sections()) {
+            already_used.insert(section.name());
+        }
 
         // Mapping from names to characteristics for fast lookup
         std::unordered_map<std::string, LIEF::PE::Section::CHARACTERISTICS> permissions_map;
