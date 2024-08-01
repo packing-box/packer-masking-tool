@@ -1,12 +1,12 @@
 
-<p align="center"><img src="src/logo.png" width="150" height="150" style="border-radius:50%;"></p>
+<p align="center"><img src="https://github.com/packing-box/packer-masking-tool/raw/main/docs/pages/imgs/logo.png" width="150" height="150" style="border-radius:50%;"></p>
 <h1 align="center">NotPacked++</h1>
 <h3 align="center">Adversarial tool for breaking static detection of packed executable</h3>
 
 <div align="center">
 
 [![NotPacked++](https://img.shields.io/badge/NotPacked++-v0.1-blue.svg)](https://github.com/packing-box/packer-masking-tool)
-[![Read The Docs](https://readthedocs.org/projects/docker-packing-box/badge/?version=latest)](http://packer-masking-tool.readthedocs.io/en/latest/?badge=latest)
+[![Read The Docs](https://readthedocs.org/projects/packer-masking-tool/badge/?version=latest)](http://packer-masking-tool.readthedocs.io/en/latest/?badge=latest)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-orange.svg)](https://www.gnu.org/licenses/gpl-3.0)
 ![Status](https://img.shields.io/badge/status-bêta-red.svg)
 
@@ -21,6 +21,7 @@ In the current version, the tool focuses on the PE file format and the most comm
 
 
 ### Usage
+
 ```
     _   __      __  ____             __            __          
    / | / ____  / /_/ __ \____ ______/ /_____  ____/ / __    __ 
@@ -54,9 +55,8 @@ Other options: (by default the behavior is --permissions --raw-size)
 ```
 
 
-
-
 ---
+
 ## Example of usage
 
 `notpacked++ input.exe`
@@ -105,8 +105,6 @@ False
 False 0.030065735045354813
 
 ```
-
-
 
 
 ## Installation
