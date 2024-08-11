@@ -45,9 +45,7 @@ Usage: ./notpacked++ <input_file> [OPTIONS]
     --help            : Display this help message.
 
 Other options: (by default the behavior is --permissions --raw-size)
-    --add-api         : Add 20 common API imports to the PE file. (Rebuilding a functional file not working yet)
     --fill-sections   : Fill sections with zeros from their raw size to their virtual size.
-    --move-ep         : Move the entry point to a new low entropy section.
     --rename-sections : Rename packer sections to standard section names.
     --permissions      : Update the permissions of all sections to standard ones (rwx/rw-/..), moves the EP to a new section and renames sections.
     --raw-size    : Edit the raw size value in the header of sections having a 0 raw size (without adding real data bytes).

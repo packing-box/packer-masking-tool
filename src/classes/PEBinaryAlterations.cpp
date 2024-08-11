@@ -6,6 +6,7 @@
 #include <random>
 #include "RawSizeEditor.cpp"
 #include "constants.hpp"
+#include <algorithm>
 
 class PEBinaryAlterations {
 public:
@@ -30,9 +31,16 @@ public:
         {
             std::cout <<std::endl<< YELLOW << "[INFO]  \033[0m Updating the permissions of all sections to standard ones (rwx/rw-/..), moving the entry point to a new section and Renaming sections to standard ones..." << RESET << std::endl;
 
+            // get file size
+            size_t file_size = binary.get_size();
+
             // -- Update the permissions of the sections --
             //std::vector<uint8_t> pre_data = Utilities::generateRandomBytes(64);
-            size_t random_nb_bytes = Utilities::get_random_number(64, 4096);
+            // between 10% and 20% of the file size
+            // max between five_percent and 2048 and max between ten_percent and 8192
+            size_t lower_bound = std::max(static_cast<size_t>(file_size * 10 / 100), static_cast<size_t>(2048));
+            size_t higher_bound = std::max(static_cast<size_t>(file_size * 20 / 100), static_cast<size_t>(8192));
+            size_t random_nb_bytes = Utilities::get_random_number(lower_bound, higher_bound);
             //std::vector<uint8_t> post_data = Utilities::generateRandomBytes(random_nb_bytes);
 
             std::vector<uint8_t> post_data;
@@ -47,7 +55,7 @@ public:
                 pre_data.push_back(randbytes2[i % 3]);
             }
 
-            size_t nb_deadcode = Utilities::get_random_number(2, 64);
+            size_t nb_deadcode = Utilities::get_random_number(64, 128);
             // generate random number between
             // TODO: first check if the permissions are already set correctly
             binary.update_section_permissions(pre_data, post_data, nb_deadcode);
@@ -137,6 +145,8 @@ public:
     }
 
     static void add_20_common_api_imports(PEBinary& binary){
+        // Description: Add 20 common API imports to the PE file
+        // WARNING: Currently adding API imports does not maintain the executable functionality
         std::cout <<std::endl<< YELLOW << "[INFO]  \033[0m Adding 20 common API imports to the PE file..." << RESET << std::endl;
 
         const unsigned int MAX_LOOP = 20;

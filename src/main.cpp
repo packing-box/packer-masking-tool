@@ -45,10 +45,10 @@ void help(const char* program_name){
     std::cerr << std::endl;
 
     // possible options
-    std::cerr << "Other options: (by default the behavior is --permissions --raw-size)" << std::endl;
-    std::cerr << "    --add-api         : Add 20 common API imports to the PE file. (Rebuilding a functional file not working yet)" << std::endl;
+    std::cerr << "Other options: (by default the behavior is --fill-sections --permissions)" << std::endl;
+    //std::cerr << "    --add-api         : Add 20 common API imports to the PE file. (Rebuilding a functional file not working yet)" << std::endl;
     std::cerr << "    --fill-sections   : Fill sections with zeros from their raw size to their virtual size." << std::endl;
-    std::cerr << "    --move-ep         : Move the entry point to a new low entropy section." << std::endl;
+    //std::cerr << "    --move-ep         : Move the entry point to a new low entropy section." << std::endl;
     std::cerr << "    --rename-sections : Rename packer sections to standard section names." << std::endl;
     
     std::cerr << "    --permissions     : Update the permissions of all sections to standard ones (rwx/rw-/..), moves the EP to a new section and renames sections." << std::endl;
@@ -114,7 +114,7 @@ int main( int argc, char **argv) {
             }
         }
         // ===== Alterations =====
-        else if (std::strcmp(argv[i], "--add-api") == 0)
+        /*else if (std::strcmp(argv[i], "--add-api") == 0)
         {
             at_least_one_alteration = true;
 
@@ -124,17 +124,17 @@ int main( int argc, char **argv) {
 
             binary = PEBinary(output_file_name);
             
-        } 
+        } else if (std::strcmp(argv[i], "--move-ep") == 0)
+        {
+            at_least_one_alteration = true;
+            PEBinaryAlterations::move_entrypoint_to_new_low_entropy_section(binary);
+        } */
         else if (std::strcmp(argv[i], "--fill-sections") == 0)
         {
             at_least_one_alteration = true;
             PEBinaryAlterations::fill_sections_with_zeros(binary);
         }
-        else if (std::strcmp(argv[i], "--move-ep") == 0)
-        {
-            at_least_one_alteration = true;
-            PEBinaryAlterations::move_entrypoint_to_new_low_entropy_section(binary);
-        } else if (std::strcmp(argv[i], "--rename-sections") == 0)
+        else if (std::strcmp(argv[i], "--rename-sections") == 0)
         {
             at_least_one_alteration = true;
             PEBinaryAlterations::rename_packer_sections(binary);
@@ -163,7 +163,7 @@ int main( int argc, char **argv) {
         // ==== apply all alterations ======
         
         //PEBinaryAlterations::add_low_entropy_text_section(binary);
-        //PEBinaryAlterations::fill_sections_with_zeros(binary);
+        PEBinaryAlterations::fill_sections_with_zeros(binary);
         //PEBinaryAlterations::move_entrypoint_to_new_low_entropy_section(binary);
 
         // TODO:
@@ -179,9 +179,9 @@ int main( int argc, char **argv) {
 
         build_and_write(binary, output_file_name, edited_iat);
 
-        binary = PEBinary(output_file_name);
+        //binary = PEBinary(output_file_name);
 
-        PEBinaryAlterations::edit_raw_size_of_sections_in_header(binary);
+        //PEBinaryAlterations::edit_raw_size_of_sections_in_header(binary);
 
         //binary = PEBinary(output_file_name);
         std::cout << std::endl <<  GREEN << "[SUCCESS] \033[0m File saved as: " << output_file_name << RESET << std::endl;
