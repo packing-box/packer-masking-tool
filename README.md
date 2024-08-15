@@ -44,7 +44,7 @@ Usage: ./notpacked++ <input_file> [OPTIONS]
     -o <output_file>  : Set the output file name. (default:<input_file>_out.exe)
     --help            : Display this help message.
 
-Other options: (by default the behavior is --permissions --raw-size)
+Other options: (by default the behavior is --fill-sections --permissions)
     --fill-sections   : Fill sections with zeros from their raw size to their virtual size.
     --rename-sections : Rename packer sections to standard section names.
     --permissions      : Update the permissions of all sections to standard ones (rwx/rw-/..), moves the EP to a new section and renames sections.
