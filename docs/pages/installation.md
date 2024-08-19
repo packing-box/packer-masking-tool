@@ -16,6 +16,10 @@ You can install LIEF by running the following command:
 ./install_lief.sh
 ```
 Or you can use the **Dockerfile** provided in the repository to build the tool, it will install all the dependencies for you.
+```bash
+docker build -t notpackedpp .
+docker run -it notpackedpp -v `pwd`:/mnt/share notpackedpp
+```
 
 ### Building NotPacked++
 Once you have installed the dependencies, you can build the tool by running the following command:
