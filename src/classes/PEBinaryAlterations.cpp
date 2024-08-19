@@ -4,7 +4,7 @@
 #include "Utilities.cpp"
 // random number generator
 #include <random>
-#include "RawSizeEditor.cpp"
+#include "RawSizeEditor.hpp"
 #include "constants.hpp"
 #include <algorithm>
 

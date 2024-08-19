@@ -25,18 +25,24 @@ EXEC = notpacked++
 
 all: $(EXEC)
 
-$(EXEC): main.o PEBinary.o PEBinaryModifiers.o
-	$(CXX) $(PARAMS) -o $(EXEC) PEBinary.o main.o PEBinaryModifiers.o $(LIEF)
+$(EXEC): main.o PEBinary.o PEBinaryModifiers.o CustomParser.o RawSizeEditor.o
+	$(CXX) $(PARAMS) -o $(EXEC) PEBinary.o main.o PEBinaryModifiers.o RawSizeEditor.o CustomParser.o $(LIEF)
 	rm -f *.o
 
-main.o: $(SOURCE_DIR)/main.cpp $(DIR_CLASSES)/PEBinary.hpp
+main.o: $(SOURCE_DIR)/main.cpp $(DIR_CLASSES)/PEBinary.hpp 
 	$(CXX) $(PARAMS) -c $(SOURCE_DIR)/main.cpp 
 
 PEBinary.o: $(DIR_CLASSES)/PEBinary.cpp $(DIR_CLASSES)/PEBinary.hpp 
 	$(CXX) $(PARAMS) -c $(DIR_CLASSES)/PEBinary.cpp $(LIEF)
 
-PEBinaryModifiers.o: $(DIR_CLASSES)/PEBinaryModifiers.cpp $(DIR_CLASSES)/PEBinaryModifiers.hpp
+PEBinaryModifiers.o: $(DIR_CLASSES)/PEBinaryModifiers.cpp $(DIR_CLASSES)/PEBinaryModifiers.hpp $(DIR_CLASSES)/CustomParser.hpp
 	$(CXX) $(PARAMS) -c $(DIR_CLASSES)/PEBinaryModifiers.cpp $(LIEF)
+
+CustomParser.o: $(DIR_CLASSES)/CustomParser.cpp $(DIR_CLASSES)/CustomParser.hpp
+	$(CXX) $(PARAMS) -c $(DIR_CLASSES)/CustomParser.cpp 
+
+RawSizeEditor.o: $(DIR_CLASSES)/RawSizeEditor.cpp $(DIR_CLASSES)/RawSizeEditor.hpp
+	$(CXX) $(PARAMS) -c $(DIR_CLASSES)/RawSizeEditor.cpp
 
 clean:
 	rm -f *.o $(EXEC) 
