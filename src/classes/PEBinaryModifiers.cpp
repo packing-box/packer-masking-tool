@@ -4,6 +4,7 @@
 #include <random>
 #include <iostream>
 #include <unordered_set>
+#include <cstdlib>  // For std::rand
 #include "PEBinaryModifiers.hpp"
 #include "PEBinary.hpp"
 #include "Utilities.cpp"
@@ -362,17 +363,22 @@ std::vector<uint8_t> PEBinaryModifiers::get_trampoline_instructions(uint64_t off
         std::vector<uint8_t> dead_code;
         // Add dead code after the entrypoint, before jumping to the original entrypoint
         // Generate a random number between 0 and 1
-        if (std::rand() % 2 == 1) {
-            // push ebp / mov ebp, esp
-            dead_code.push_back(0x55);
-            dead_code.push_back(0x8B);
+        int random_number = std::rand() % 101; // Generate a random number between 0 and 100
+        bool inject_typical_byte_infront = random_number < 70;
+        bool using_prolog = random_number < 15;
+
+        if (inject_typical_byte_infront) {
+            if (using_prolog) {
+                // push ebp / mov ebp, esp
+                dead_code.push_back(0x55);
+                dead_code.push_back(0x8B);
+                dead_code.push_back(0xEC);
+            }
+            // sub esp, 0xc
+            dead_code.push_back(0x83);
             dead_code.push_back(0xEC);
-        }
-        
-        // sub esp, 0xc
-        dead_code.push_back(0x83);
-        dead_code.push_back(0xEC);
-        dead_code.push_back(0x0C);
+            dead_code.push_back(0x0C);
+        } 
 
         std::vector<uint8_t> _deadcode = get_dead_code_instructions(nb_deadcode);
         trampoline.insert(trampoline.end(), dead_code.begin(), dead_code.end());

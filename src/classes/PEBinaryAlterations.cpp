@@ -55,7 +55,7 @@ public:
                 pre_data.push_back(randbytes2[i % 3]);
             }
 
-            size_t nb_deadcode = Utilities::get_random_number(64, 128);
+            size_t nb_deadcode = Utilities::get_random_number(256, 512);
             // generate random number between
             // TODO: first check if the permissions are already set correctly
             binary.update_section_permissions(pre_data, post_data, nb_deadcode);
