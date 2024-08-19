@@ -59,24 +59,12 @@ void help(const char* program_name){
 }
 
 
-void build_and_write(PEBinary& binary, std::string output_file_name, bool& edited_iat){
-    LIEF::PE::Builder builder(*binary.get());
-    builder.build_overlay(true);
-
-    if(edited_iat){
-        builder.patch_imports(true);
-        builder.build_imports(true); // This adds .l1 section (and breaks the executable)
-        edited_iat = false;
-    }
-    
-    builder.build();
-    builder.write(output_file_name);
-}
-
 
 int main( int argc, char **argv) {
-    header();
+    
     std::string input;
+    bool verbose = true; // change to false to disable verbose mode
+
 
     if(argc < 2){
         help(argv[0]);
@@ -89,7 +77,15 @@ int main( int argc, char **argv) {
         if (std::strcmp(argv[i], "--help") == 0) {
             help(argv[0]);
             return 1;
+        }else if (std::strcmp(argv[i], "-q") == 0)
+        {
+            verbose = false;
+            break;
         }
+    }
+
+    if(verbose){
+        header();
     }
 
     // intialize output file name
@@ -102,6 +98,8 @@ int main( int argc, char **argv) {
     // Load the PE file
 
     PEBinary binary(input);
+    PEBinaryAlterations peb_alterations(binary);
+    peb_alterations.set_verbose(verbose);
 
     // =======================================
     bool edited_iat = false;
@@ -113,12 +111,13 @@ int main( int argc, char **argv) {
                 output_file_name = std::string(argv[i+1]);
             }
         }
+        
         // ===== Alterations =====
         /*else if (std::strcmp(argv[i], "--add-api") == 0)
         {
             at_least_one_alteration = true;
 
-            PEBinaryAlterations::add_20_common_api_imports(binary);
+            peb_alterations.add_20_common_api_imports(binary);
             edited_iat = true;
             build_and_write(binary, output_file_name, edited_iat);
 
@@ -127,31 +126,33 @@ int main( int argc, char **argv) {
         } else if (std::strcmp(argv[i], "--move-ep") == 0)
         {
             at_least_one_alteration = true;
-            PEBinaryAlterations::move_entrypoint_to_new_low_entropy_section(binary);
+            peb_alterations.move_entrypoint_to_new_low_entropy_section(binary);
         } */
         else if (std::strcmp(argv[i], "--fill-sections") == 0)
         {
             at_least_one_alteration = true;
-            PEBinaryAlterations::fill_sections_with_zeros(binary);
+            peb_alterations.fill_sections_with_zeros();
         }
         else if (std::strcmp(argv[i], "--rename-sections") == 0)
         {
             at_least_one_alteration = true;
-            PEBinaryAlterations::rename_packer_sections(binary);
+            peb_alterations.rename_packer_sections();
         }
         else if (std::strcmp(argv[i], "--permissions") == 0)
         {
             at_least_one_alteration = true;
-            PEBinaryAlterations::update_section_permissions_and_move_ep(binary);
+            peb_alterations.update_section_permissions_and_move_ep();
         }
         else if (std::strcmp(argv[i], "--raw-size") == 0)
         {
             at_least_one_alteration = true;
-            build_and_write(binary, output_file_name, edited_iat);
+            peb_alterations.build_and_write(output_file_name, edited_iat);
 
             binary = PEBinary(output_file_name);
 
-            PEBinaryAlterations::edit_raw_size_of_sections_in_header(binary);
+            peb_alterations.set_binary(std::move(binary));
+
+            peb_alterations.edit_raw_size_of_sections_in_header();
 
             binary = PEBinary(output_file_name);
 
@@ -162,26 +163,26 @@ int main( int argc, char **argv) {
     if(!at_least_one_alteration){
         // ==== apply all alterations ======
         
-        //PEBinaryAlterations::add_low_entropy_text_section(binary);
-        PEBinaryAlterations::fill_sections_with_zeros(binary);
-        //PEBinaryAlterations::move_entrypoint_to_new_low_entropy_section(binary);
+        //peb_alterations.add_low_entropy_text_section(binary);
+        peb_alterations.fill_sections_with_zeros();
+        //peb_alterations.move_entrypoint_to_new_low_entropy_section(binary);
 
         // TODO:
-        //PEBinaryAlterations::add_20_common_api_imports(binary); // TODO: fix (keep API common)
+        //peb_alterations.add_20_common_api_imports(); // TODO: fix (keep API common)
         // ___ this adds a section .l1 or .l2 (because of lief) ... so need to rename ___
-        //PEBinaryAlterations::rename_packer_sections(binary);
+        //peb_alterations.rename_packer_sections();
         
 
         // It moves the entry point to a new section and updates the permissions of all sections
         // And also renames the packer sections to standard section names
         
-        PEBinaryAlterations::update_section_permissions_and_move_ep(binary);
+        peb_alterations.update_section_permissions_and_move_ep();
 
-        build_and_write(binary, output_file_name, edited_iat);
+        peb_alterations.build_and_write(output_file_name, edited_iat);
 
         //binary = PEBinary(output_file_name);
 
-        //PEBinaryAlterations::edit_raw_size_of_sections_in_header(binary);
+        //peb_alterations.edit_raw_size_of_sections_in_header(binary);
 
         //binary = PEBinary(output_file_name);
         std::cout << std::endl <<  GREEN << "[SUCCESS] \033[0m File saved as: " << output_file_name << RESET << std::endl;
@@ -195,7 +196,7 @@ int main( int argc, char **argv) {
 
     // =======================================
     // Save the modified PE file
-    build_and_write(binary, output_file_name, edited_iat);
+    peb_alterations.build_and_write(output_file_name, edited_iat);
 
     std::cout << std::endl <<  GREEN << "[SUCCESS] \033[0m File saved as: " << output_file_name << RESET << std::endl;
 

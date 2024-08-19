@@ -10,27 +10,60 @@
 
 class PEBinaryAlterations {
 public:
+
+    PEBinaryAlterations(PEBinary& binary) : binary(binary) {}
+
+    void set_verbose(bool verbose){
+        this->verbose = verbose;
+    }
+
+    void set_binary(PEBinary&& binary){
+        this->binary = std::move(binary);
+    }
+
+    PEBinary& get_binary(){
+        return binary;
+    }
+
+    void build_and_write(std::string output_file_name, bool& edited_iat){
+        LIEF::PE::Builder builder(*binary.get());
+        builder.build_overlay(true);
+
+        if(edited_iat){
+            builder.patch_imports(true);
+            builder.build_imports(true); // This adds .l1 section (and breaks the executable)
+            edited_iat = false;
+        }
+        
+        builder.build();
+        builder.write(output_file_name);
+    }
     
-    static void rename_packer_sections(PEBinary& binary){
+     void rename_packer_sections(){
         try
         {
-            std::cout << std::endl<< YELLOW << "[INFO]  \033[0m Renaming packer sections to standard section names..." << RESET << std::endl;
+            if(verbose){
+                std::cout << std::endl<< YELLOW << "[INFO]  \033[0m Renaming packer sections to standard section names..." << RESET << std::endl;
+            }
 
             for (unsigned int i = 0; i < 50; i++) {
-                _rename_one_packer_section(binary);
+                _rename_one_packer_section();
             }
         }
         catch(const std::exception& e)
         {
-            std::cerr << "[Error] " << e.what() << '\n';
+            if(verbose){
+                std::cerr << "[Error] " << e.what() << '\n';
+            }
         }
     }
 
-    static void update_section_permissions_and_move_ep(PEBinary& binary){
+     void update_section_permissions_and_move_ep(){
         try
         {
-            std::cout <<std::endl<< YELLOW << "[INFO]  \033[0m Updating the permissions of all sections to standard ones (rwx/rw-/..), moving the entry point to a new section and Renaming sections to standard ones..." << RESET << std::endl;
-
+            if(verbose){
+                std::cout <<std::endl<< YELLOW << "[INFO]  \033[0m Updating the permissions of all sections to standard ones (rwx/rw-/..), moving the entry point to a new section and Renaming sections to standard ones..." << RESET << std::endl;
+            }
             // get file size
             size_t file_size = binary.get_size();
 
@@ -62,14 +95,17 @@ public:
         }
         catch(const std::exception& e)
         {
-            std::cerr << RED <<"[Error] \033[0m" << e.what() << '\n';
+            if(verbose){
+                std::cerr << RED <<"[Error] \033[0m" << e.what() << '\n';
+            }
         }
     }
 
 
-    static void edit_raw_size_of_sections_in_header(PEBinary& binary){
-        std::cout <<std::endl<< YELLOW << "[INFO]  \033[0m Editing the raw size value in the header of sections having a 0 raw size (without adding real data bytes)..." << RESET << std::endl;
-
+     void edit_raw_size_of_sections_in_header(){
+        if(verbose){
+            std::cout <<std::endl<< YELLOW << "[INFO]  \033[0m Editing the raw size value in the header of sections having a 0 raw size (without adding real data bytes)..." << RESET << std::endl;
+        }
         // Description: Edit the raw size of sections in the header
         std::string file_path = binary.get_filename();
 
@@ -78,14 +114,17 @@ public:
         if(total_added_raw_size > 0){
             //std::cout << "Total added raw size: " << total_added_raw_size << std::endl;
         }else{
-            std::cerr << "No raw size added" << std::endl;
+            if(verbose){
+                std::cerr << "No raw size added" << std::endl;
+            }
         }
     }
 
-    static void move_entrypoint_to_new_low_entropy_section(PEBinary& binary){
+     void move_entrypoint_to_new_low_entropy_section(){
         // this function is for moving the entry point to a new section with low entropy and common related name
-        std::cout << std::endl<<YELLOW << "[INFO]  \033[0m Moving the entry point to a new low entropy section..." << RESET << std::endl;
-
+        if(verbose){
+            std::cout << std::endl<<YELLOW << "[INFO]  \033[0m Moving the entry point to a new low entropy section..." << RESET << std::endl;
+        }
         std::vector<std::string> select_from_this = {".text", ".code", ".init", ".page", ".cde", ".textbss"};
         std::vector<std::string> section_names = binary.get_section_names();
         std::vector<std::string> standard_section_names = binary.get_standard_section_names();
@@ -107,10 +146,12 @@ public:
         // pre_data = {}  : empty
     }
 
-    static void fill_sections_with_zeros(PEBinary& binary){
+     void fill_sections_with_zeros(){
         // Description: Stretch sections with zeros from their raw size to their virtual size
         size_t size_to_fill = 0; // its unsigned !!
-        std::cout <<std::endl<< YELLOW << "[INFO]  \033[0m Filling sections with zeros from their raw size to their virtual size..." << RESET << std::endl;
+        if(verbose){
+            std::cout <<std::endl<< YELLOW << "[INFO]  \033[0m Filling sections with zeros from their raw size to their virtual size..." << RESET << std::endl;
+        }
         for(LIEF::PE::Section& section : binary.get_sections()){
             size_to_fill = section.virtual_size() - section.sizeof_raw_data();
             if(size_to_fill > 0 && section.virtual_size() > section.sizeof_raw_data()){
@@ -125,7 +166,7 @@ public:
         // std::cerr << RED << "[WARNING] \033[0m Currently filling sections with zeros does NOT ALWAYS maintain the executable functionality..." << RESET << std::endl;
     }
 
-    static void add_low_entropy_text_section(PEBinary& binary){
+     void add_low_entropy_text_section(){
         // description: Add a code section with low entropy and common related name (in last resort, use a random common name, whatever the typical section type)
         std::vector<std::string> select_from_this = {".text", ".code", ".init", ".page", ".cde", ".textbss"};
         std::vector<std::string> section_names = binary.get_section_names();
@@ -144,11 +185,12 @@ public:
         binary.add_section(new_section_name,data, 0, LIEF::PE::PE_SECTION_TYPES::TEXT);
     }
 
-    static void add_20_common_api_imports(PEBinary& binary){
+     void add_20_common_api_imports(){
         // Description: Add 20 common API imports to the PE file
         // WARNING: Currently adding API imports does not maintain the executable functionality
-        std::cout <<std::endl<< YELLOW << "[INFO]  \033[0m Adding 20 common API imports to the PE file..." << RESET << std::endl;
-
+        if(verbose){
+            std::cout <<std::endl<< YELLOW << "[INFO]  \033[0m Adding 20 common API imports to the PE file..." << RESET << std::endl;
+        }
         const unsigned int MAX_LOOP = 20;
         // Add common API imports to the IAT, avoiding duplicates
         std::vector<std::pair<std::string, std::string>> COMMON_API_IMPORTS = binary.get_common_api_imports();
@@ -172,12 +214,15 @@ public:
             }
         }
 
-        std::cout << RED << "[WARNING] \033[0m Currently adding API imports does not maintain the executable functionality..." << RESET << std::endl;
-
+        if(verbose){
+            std::cout << RED << "[WARNING] \033[0m Currently adding API imports does not maintain the executable functionality..." << RESET << std::endl;
+        }
     }
 
 private:
-    static void _rename_one_packer_section(PEBinary& binary){
+    PEBinary& binary;
+    bool verbose = false;
+     void _rename_one_packer_section(){
 
         // -- Get the section names --
         std::vector<std::string> section_names = binary.get_section_names();
