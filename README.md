@@ -7,20 +7,27 @@
 
 [![NotPacked++](https://img.shields.io/badge/NotPacked++-v0.1-blue.svg)](https://github.com/packing-box/packer-masking-tool)
 [![Read The Docs](https://readthedocs.org/projects/packer-masking-tool/badge/?version=latest)](http://packer-masking-tool.readthedocs.io/en/latest/?badge=latest)
+[![Black Hat Arsenal Europe 2024](https://badgen.net/badge/Black%20Hat%20Arsenal/Europe%202024/blue)](https://www.blackhat.com/eu-24/arsenal/schedule/#notpacked-evading-static-packing-detection-42187)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-orange.svg)](https://www.gnu.org/licenses/gpl-3.0)
-![Status](https://img.shields.io/badge/status-bêta-red.svg)
+![Status](https://img.shields.io/badge/status-beta-red.svg)
 
 </div>
 
----
-
 NotPacked++, is an adversarial weaponized tool to alter a packed executable to evade static packing detection. It is designed to be used by malware analysts to test the effectiveness of their detection mechanisms and to improve their detection capabilities. It is also useful for red teamers to test the effectiveness of their evasion techniques, and highlight potential weaknesses of a target's security mechanisms.
+
+See the Black Hat Arsenal presentation for a demonstration: [NotPacked++: Evading Static Packing Detection](https://raw.githubusercontent.com/packing-box/packer-masking-tool/main/docs/material/bheu24-notpackedpp.pdf)
 
 In the current version, the tool focuses on the PE file format and the most common packers used in the wild. The tool is designed to be modular and extensible, so that it can be easily extended to support other file formats and packers.
 
 
+## Installation
 
-### Usage
+To install NotPacked++, you can either download the latest release from the [releases page](https://github.com/packing-box/packer-masking-tool/releases) or build it from source. 
+
+> Please refer to the [documentation](https://packer-masking-tool.readthedocs.io/en/latest/?badge=latest) for a full guide to build the tool from source.
+
+
+## Usage
 
 ```
     _   __      __  ____             __            __          
@@ -55,7 +62,7 @@ Other options: (by default the behavior is --fill-sections --permissions)
 
 ---
 
-## Example of usage
+### Example of usage
 
 `notpacked++ input.exe`
 
@@ -105,15 +112,11 @@ False 0.030065735045354813
 ```
 
 
-## Installation
-
-To install NotPacked++, you can either download the latest release from the [releases page](https://github.com/packing-box/packer-masking-tool/releases) or build it from source. 
-
-> Please refer to the [documentation](https://packer-masking-tool.readthedocs.io/en/latest/?badge=latest) for a full guide to build the tool from source.
-
-
----
-## Supporters
-
+## :clap:  Supporters
 
 [![Stargazers repo roster for @packing-box/packer-masking-tool](https://reporoster.com/stars/dark/packing-box/packer-masking-tool)](https://github.com/packing-box/packer-masking-tool/stargazers)
+
+[![Forkers repo roster for @packing-box/packer-masking-tool](https://reporoster.com/forks/dark/packing-box/packer-masking-tool)](https://github.com/packing-box/packer-masking-tool/network/members)
+
+<p align="center"><a href="#"><img src="https://img.shields.io/badge/Back%20to%20top--lightgrey?style=social" alt="Back to top" height="20"/></a></p>
+
