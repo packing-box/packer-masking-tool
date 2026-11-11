@@ -1,12 +1,12 @@
 
-<p align="center"><img src="https://github.com/packing-box/packer-masking-tool/raw/main/docs/pages/imgs/logo.png" width="150" height="150" style="border-radius:50%;"></p>
+<p align="center"><img src="https://github.com/packing-box/packer-masking-tool/raw/main/docs/pages/img/logo.png" width="150" height="150" style="border-radius:50%;"></p>
 <h1 align="center">NotPacked++</h1>
 <h3 align="center">Adversarial tool for breaking static detection of packed executable</h3>
 
 <div align="center">
 
 [![NotPacked++](https://img.shields.io/badge/NotPacked++-v0.1-blue.svg)](https://github.com/packing-box/packer-masking-tool)
-[![Read The Docs](https://readthedocs.org/projects/packer-masking-tool/badge/?version=latest)](http://packer-masking-tool.readthedocs.io/en/latest/?badge=latest)
+[![Read The Docs](https://readthedocs.org/projects/packer-masking-tool/badge/?version=latest)](https://packer-masking-tool.readthedocs.io/en/latest/?badge=latest)
 [![Black Hat Arsenal Europe 2024](https://badgen.net/badge/Black%20Hat%20Arsenal/Europe%202024/blue)](https://www.blackhat.com/eu-24/arsenal/schedule/#notpacked-evading-static-packing-detection-42187)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-orange.svg)](https://www.gnu.org/licenses/gpl-3.0)
 ![Status](https://img.shields.io/badge/status-beta-red.svg)
@@ -111,12 +111,6 @@ False 0.030065735045354813
 
 ```
 
-
-## :clap:  Supporters
-
-[![Stargazers repo roster for @packing-box/packer-masking-tool](https://reporoster.com/stars/dark/packing-box/packer-masking-tool)](https://github.com/packing-box/packer-masking-tool/stargazers)
-
-[![Forkers repo roster for @packing-box/packer-masking-tool](https://reporoster.com/forks/dark/packing-box/packer-masking-tool)](https://github.com/packing-box/packer-masking-tool/network/members)
 
 <p align="center"><a href="#"><img src="https://img.shields.io/badge/Back%20to%20top--lightgrey?style=social" alt="Back to top" height="20"/></a></p>
 

@@ -1,6 +1,6 @@
 # Documentation
 
-<p align="center"><img src="imgs/logo.png" width="150" height="150" style="border-radius:50%;"></p>
+<p align="center"><img src="img/logo.png" width="150" height="150" style="border-radius:50%;"></p>
 <h1 align="center">NotPacked++</h1>
 <h3 align="center">Adversarial tool for breaking static detection of packed executable</h3>
 
@@ -29,4 +29,4 @@ To get started with NotPacked++, you can either download the latest release from
 
 
 ## Contributing
-- [Contributing Guidelines](CONTRIBUTING.md) : Guidelines for contributing to NotPacked++
+- [Contributing Guidelines](contributing.md) : Guidelines for contributing to NotPacked++
