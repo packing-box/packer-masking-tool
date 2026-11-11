@@ -1,6 +1,7 @@
 #include "RawSizeEditor.hpp"
 #include "constants.hpp"
 #include "CustomParser.hpp"
+#include <random>
 
 RawSizeEditor::RawSizeEditor(std::string filePath) : filePath(filePath), parser(filePath) {
     parser.parse();
@@ -19,8 +20,22 @@ void RawSizeEditor::addOverlay(size_t overlaySize) {
     
 
     std::vector<u_int8_t>& fileContents = parser.getFileContents();
-    // TODO: Make random and random number byte \x42
-    std::vector<char> buffer(overlaySize, 0x42);
+    // A constant fill (the old 0x42 'BBBB...' run) is a trivially matchable
+    // NotPacked++ signature. Use a short per-run-random repeating pattern
+    // instead: still low entropy (3 distinct bytes, so it does not raise the
+    // overlay's entropy) but with no fixed byte signature across runs.
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<int> dist(0, 255);
+    uint8_t pattern[3] = {
+        static_cast<uint8_t>(dist(gen)),
+        static_cast<uint8_t>(dist(gen)),
+        static_cast<uint8_t>(dist(gen))
+    };
+    std::vector<char> buffer(overlaySize);
+    for (size_t i = 0; i < overlaySize; ++i) {
+        buffer[i] = static_cast<char>(pattern[i % 3]);
+    }
     fileContents.insert(fileContents.end(), buffer.begin(), buffer.end());
 
     parser.write(filePath);
