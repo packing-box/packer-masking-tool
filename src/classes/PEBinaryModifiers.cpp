@@ -6,6 +6,7 @@
 #include <fstream>
 #include <unordered_set>
 #include <cstdlib>  // For std::rand
+#include <cctype>   // For std::tolower
 #include "PEBinaryModifiers.hpp"
 #include "PEBinary.hpp"
 #include "Utilities.cpp"
@@ -331,9 +332,28 @@ void PEBinaryModifiers::add_lib_to_IAT(std::unique_ptr<LIEF::PE::Binary>& binary
 void PEBinaryModifiers::add_API_to_IAT(std::unique_ptr<LIEF::PE::Binary>& binary, const std::string& dll_name, const std::string& api_name) {
     // LIEF 1.0.0: add_library/add_import_function were replaced by
     // add_import(dll) -> Import& and Import::add_entry(api).
-    LIEF::PE::Import* import_ = binary->get_import(dll_name);
+    // Match the DLL case-insensitively so we extend the existing import
+    // descriptor rather than creating a duplicate one (e.g. a file that
+    // already imports "kernel32.dll" when we ask for "KERNEL32.DLL").
+    auto iequals = [](const std::string& a, const std::string& b) {
+        if (a.size() != b.size()) return false;
+        for (size_t i = 0; i < a.size(); ++i) {
+            if (std::tolower((unsigned char)a[i]) != std::tolower((unsigned char)b[i])) return false;
+        }
+        return true;
+    };
+
+    LIEF::PE::Import* import_ = nullptr;
+    for (LIEF::PE::Import& imp : binary->imports()) {
+        if (iequals(imp.name(), dll_name)) { import_ = &imp; break; }
+    }
     if (import_ == nullptr) {
         import_ = &binary->add_import(dll_name);
+    }
+
+    // Don't add an API that the descriptor already imports.
+    for (const LIEF::PE::ImportEntry& e : import_->entries()) {
+        if (e.name() == api_name) return;
     }
     import_->add_entry(api_name);
 }
