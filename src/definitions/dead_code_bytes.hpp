@@ -31,4 +31,26 @@ const std::vector<std::vector<uint8_t>> dead_code_bytes = {
 {0x50, 0x48, 0x89, 0xC1, 0x40, 0x58}                          // PUSH EAX + DEC EAX + MOV ECX, EAX + INC EAX + POP EAX
 };
 
+// 64-bit equivalents. The 32-bit table above must NOT be used on AMD64 targets:
+// bytes such as 0x48 and 0x40 are REX prefixes in 64-bit mode (not DEC/INC EAX),
+// so reusing it would corrupt the trampoline. These are genuine identity/no-op
+// sequences that leave registers and the stack unchanged.
+const std::vector<std::vector<uint8_t>> dead_code_bytes_64 = {
+    {0x90},                               // NOP
+    {0x66, 0x90},                         // 66 NOP (2-byte NOP)
+    {0x0F, 0x1F, 0x00},                   // NOP dword ptr [rax]
+    {0x0F, 0x1F, 0x40, 0x00},             // NOP dword ptr [rax+0x00]
+    {0x0F, 0x1F, 0x44, 0x00, 0x00},       // NOP dword ptr [rax+rax*1+0x00]
+    {0x48, 0x87, 0xC0},                   // XCHG RAX, RAX
+    {0x48, 0x89, 0xC0},                   // MOV RAX, RAX
+    {0x48, 0x8D, 0x00},                   // LEA RAX, [RAX]
+    {0xEB, 0x00},                         // JMP SHORT $+2 (same as NOP)
+    {0x50, 0x58},                         // PUSH RAX + POP RAX
+    {0x51, 0x59},                         // PUSH RCX + POP RCX
+    {0x48, 0x83, 0xC0, 0x00},             // ADD RAX, 0
+    {0x48, 0x83, 0xC8, 0x00},             // OR RAX, 0
+    {0x48, 0x83, 0xE8, 0x00},             // SUB RAX, 0
+    {0x90, 0x90}                          // NOP + NOP
+};
+
 #endif // DEAD_CODE_BYTES_HPP

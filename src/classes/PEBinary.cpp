@@ -243,9 +243,9 @@ std::vector<std::string> PEBinary::get_standard_section_names() {
     return standard_section_names;
 }
 
-std::vector<std::vector<u_int8_t>> PEBinary::get_dead_code_bytes() {
+std::vector<std::vector<u_int8_t>> PEBinary::get_dead_code_bytes(bool is_64_bit) {
     #include "../definitions/dead_code_bytes.hpp"
-    return dead_code_bytes;
+    return is_64_bit ? dead_code_bytes_64 : dead_code_bytes;
 }
 
 std::vector<std::pair<std::string, std::string>> PEBinary::get_common_api_imports() {

@@ -203,7 +203,8 @@ void PEBinaryModifiers::move_entrypoint_to_new_section(std::unique_ptr<LIEF::PE:
     auto& optional_header = binary->optional_header();
     uint64_t original_entrypoint = optional_header.addressof_entrypoint();// + addressof_entrypoint (RVA)
 
-    std::vector<uint8_t> entrypoint_data = get_trampoline_instructions(original_entrypoint, nb_deadcode);
+    bool is_64_bit = binary->header().machine() == LIEF::PE::Header::MACHINE_TYPES::AMD64;
+    std::vector<uint8_t> entrypoint_data = get_trampoline_instructions(original_entrypoint, nb_deadcode, true, is_64_bit);
 
     // Combine pre_data, trampoline, and post_data
     std::vector<uint8_t> section_data = pre_data;
@@ -337,9 +338,9 @@ bool PEBinaryModifiers::_append_to_section(std::unique_ptr<LIEF::PE::Binary>& bi
 }
 
 // Helper function to add dummy instructions
-std::vector<uint8_t> PEBinaryModifiers::get_dead_code_instructions(size_t count) {
+std::vector<uint8_t> PEBinaryModifiers::get_dead_code_instructions(size_t count, bool is_64_bit) {
 
-    std::vector<std::vector<uint8_t>> dead_code_instructions = PEBinary::get_dead_code_bytes();
+    std::vector<std::vector<uint8_t>> dead_code_instructions = PEBinary::get_dead_code_bytes(is_64_bit);
     std::vector<uint8_t> instructions;
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -354,7 +355,7 @@ std::vector<uint8_t> PEBinaryModifiers::get_dead_code_instructions(size_t count)
 }
 
 
-std::vector<uint8_t> PEBinaryModifiers::get_trampoline_instructions(uint64_t offset, size_t nb_deadcode, bool use_jump) {
+std::vector<uint8_t> PEBinaryModifiers::get_trampoline_instructions(uint64_t offset, size_t nb_deadcode, bool use_jump, bool is_64_bit) {
     std::vector<uint8_t> trampoline;
     trampoline.reserve(5+(nb_deadcode*2)); // Reserve some space to avoid frequent reallocations
 
@@ -362,25 +363,32 @@ std::vector<uint8_t> PEBinaryModifiers::get_trampoline_instructions(uint64_t off
     if(nb_deadcode > 0){
         std::vector<uint8_t> dead_code;
         // Add dead code after the entrypoint, before jumping to the original entrypoint
-        // Generate a random number between 0 and 1
-        int random_number = std::rand() % 101; // Generate a random number between 0 and 100
+        // Generate a random number between 0 and 100 (seeded, so trampolines vary per run)
+        static std::mt19937 gen(std::random_device{}());
+        std::uniform_int_distribution<> distr(0, 100);
+        int random_number = distr(gen);
         bool inject_typical_byte_infront = random_number < 70;
         bool using_prolog = random_number < 15;
 
         if (inject_typical_byte_infront) {
-            if (using_prolog) {
-                // push ebp / mov ebp, esp
-                dead_code.push_back(0x55);
-                dead_code.push_back(0x8B);
-                dead_code.push_back(0xEC);
+            if (is_64_bit) {
+                if (using_prolog) {
+                    // push rbp / mov rbp, rsp
+                    dead_code.insert(dead_code.end(), {0x55, 0x48, 0x89, 0xE5});
+                }
+                // sub rsp, 0x20
+                dead_code.insert(dead_code.end(), {0x48, 0x83, 0xEC, 0x20});
+            } else {
+                if (using_prolog) {
+                    // push ebp / mov ebp, esp
+                    dead_code.insert(dead_code.end(), {0x55, 0x8B, 0xEC});
+                }
+                // sub esp, 0xc
+                dead_code.insert(dead_code.end(), {0x83, 0xEC, 0x0C});
             }
-            // sub esp, 0xc
-            dead_code.push_back(0x83);
-            dead_code.push_back(0xEC);
-            dead_code.push_back(0x0C);
-        } 
+        }
 
-        std::vector<uint8_t> _deadcode = get_dead_code_instructions(nb_deadcode);
+        std::vector<uint8_t> _deadcode = get_dead_code_instructions(nb_deadcode, is_64_bit);
         trampoline.insert(trampoline.end(), dead_code.begin(), dead_code.end());
         trampoline.insert(trampoline.end(), _deadcode.begin(), _deadcode.end());
     }
@@ -416,7 +424,8 @@ void PEBinaryModifiers::move_ep_to_new_section(std::unique_ptr<LIEF::PE::Binary>
         characteristics = static_cast<u_int32_t>(LIEF::PE::Section::CHARACTERISTICS::MEM_READ | LIEF::PE::Section::CHARACTERISTICS::MEM_EXECUTE); 
     }
 
-    std::vector<uint8_t> entrypoint_data = get_trampoline_instructions(0, nb_deadcode, use_jump);
+    bool is_64_bit = binary->header().machine() == LIEF::PE::Header::MACHINE_TYPES::AMD64;
+    std::vector<uint8_t> entrypoint_data = get_trampoline_instructions(0, nb_deadcode, use_jump, is_64_bit);
 
     // Combine pre_data, trampoline, and post_data
     std::vector<uint8_t> section_data = pre_data;
@@ -483,7 +492,7 @@ void PEBinaryModifiers::update_section_permissions(std::unique_ptr<LIEF::PE::Bin
 
 
     // use get_trampoline_instructions
-    std::vector<uint8_t> obfuscated_trampoline = get_trampoline_instructions(0, nb_deadcode, false);
+    std::vector<uint8_t> obfuscated_trampoline = get_trampoline_instructions(0, nb_deadcode, false, is_64_bit);
 
     uint32_t offset_to_second_ep = (pre_data_trampoline.size() + obfuscated_trampoline.size());
     uint32_t neg_offset_to_second_ep = -offset_to_second_ep;

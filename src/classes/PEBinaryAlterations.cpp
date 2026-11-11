@@ -156,7 +156,8 @@ public:
             size_to_fill = section.virtual_size() - section.sizeof_raw_data();
             if(size_to_fill > 0 && section.virtual_size() > section.sizeof_raw_data()){
                 std::vector<uint8_t> data_fill = Utilities::generateRandomBytes(3);
-                std::vector<uint8_t> data(size_to_fill);
+                std::vector<uint8_t> data;
+                data.reserve(size_to_fill);
                 for(size_t i = 0; i < size_to_fill; i++){
                     data.push_back(data_fill[i % 3]);
                 }

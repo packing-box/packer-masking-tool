@@ -57,10 +57,10 @@ private:
 
 
     // Helper function to add dummy instructions
-    static std::vector<uint8_t> get_dead_code_instructions(size_t count);
+    static std::vector<uint8_t> get_dead_code_instructions(size_t count, bool is_64_bit=false);
 
 
-    static std::vector<uint8_t> get_trampoline_instructions(uint64_t original_entrypoint, size_t nb_deadcode=128,  bool use_jump=true);
+    static std::vector<uint8_t> get_trampoline_instructions(uint64_t original_entrypoint, size_t nb_deadcode=128,  bool use_jump=true, bool is_64_bit=false);
 
     static std::vector<uint8_t> call_virtualProtect(uint64_t vp_address, uint64_t address, uint64_t size, uint32_t vp_flag = 0x40, bool is_64_bit = false);
 

@@ -30,7 +30,7 @@ public:
     std::string get_permission_of_section(std::string section_name);
     std::vector<std::string> get_common_packer_section_names();
     std::vector<std::string> get_standard_section_names();
-    static std::vector<std::vector<u_int8_t>> get_dead_code_bytes();
+    static std::vector<std::vector<u_int8_t>> get_dead_code_bytes(bool is_64_bit=false);
     std::vector<std::pair<std::string, std::string>> get_common_api_imports();
     void add_API_to_IAT(const std::pair<std::string, std::string>& api_import);
     void add_section(const std::string& name, const std::vector<uint8_t>& data, uint32_t characteristics=0, LIEF::PE::PE_SECTION_TYPES type=LIEF::PE::PE_SECTION_TYPES::TEXT);
