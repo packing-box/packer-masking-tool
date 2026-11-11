@@ -207,10 +207,12 @@ public:
     }
 
      void add_20_common_api_imports(){
-        // Description: Add 20 common API imports to the PE file
-        // WARNING: Currently adding API imports does not maintain the executable functionality
+        // Description: Add up to 20 common API imports to the PE file. A small
+        // import table is a strong "packed" signal; inflating it with benign
+        // common APIs makes the file look more like a regular build. The caller
+        // must write with edited_iat=true so the import table is rebuilt.
         if(verbose){
-            std::cout <<std::endl<< YELLOW << "[INFO]  \033[0m Adding 20 common API imports to the PE file..." << RESET << std::endl;
+            std::cout <<std::endl<< YELLOW << "[INFO]  \033[0m Adding up to 20 common API imports to the PE file..." << RESET << std::endl;
         }
         const unsigned int MAX_LOOP = 20;
         // Add common API imports to the IAT, avoiding duplicates
@@ -233,10 +235,6 @@ public:
                 // add the API import to the list of imports
                 api_imports.push_back(random_api_import);
             }
-        }
-
-        if(verbose){
-            std::cout << RED << "[WARNING] \033[0m Currently adding API imports does not maintain the executable functionality..." << RESET << std::endl;
         }
     }
 

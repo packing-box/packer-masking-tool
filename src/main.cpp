@@ -46,7 +46,7 @@ void help(const char* program_name){
 
     // possible options
     std::cerr << "Other options: (by default the behavior is --fill-sections --permissions)" << std::endl;
-    //std::cerr << "    --add-api         : Add 20 common API imports to the PE file. (Rebuilding a functional file not working yet)" << std::endl;
+    std::cerr << "    --add-api         : Add up to 20 common API imports to inflate the import table. Use on its own (not with --permissions)." << std::endl;
     std::cerr << "    --fill-sections   : Fill sections with zeros from their raw size to their virtual size." << std::endl;
     //std::cerr << "    --move-ep         : Move the entry point to a new low entropy section." << std::endl;
     std::cerr << "    --rename-sections : Rename packer sections to standard section names." << std::endl;
@@ -113,17 +113,13 @@ int main( int argc, char **argv) {
         }
         
         // ===== Alterations =====
-        /*else if (std::strcmp(argv[i], "--add-api") == 0)
+        else if (std::strcmp(argv[i], "--add-api") == 0)
         {
             at_least_one_alteration = true;
-
-            peb_alterations.add_20_common_api_imports(binary);
-            edited_iat = true;
-            build_and_write(binary, output_file_name, edited_iat);
-
-            binary = PEBinary(output_file_name);
-            
-        } else if (std::strcmp(argv[i], "--move-ep") == 0)
+            peb_alterations.add_20_common_api_imports();
+            edited_iat = true; // rebuild the import table when writing
+        }
+        /*else if (std::strcmp(argv[i], "--move-ep") == 0)
         {
             at_least_one_alteration = true;
             peb_alterations.move_entrypoint_to_new_low_entropy_section(binary);
