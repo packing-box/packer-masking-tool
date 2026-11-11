@@ -584,10 +584,54 @@ void PEBinaryModifiers::update_section_permissions(std::unique_ptr<LIEF::PE::Bin
 
 
 std::vector<uint8_t> PEBinaryModifiers::get_code_for_image_base(uint32_t rva) {
-    std::vector<uint8_t> code = {0x5b, 0xB8}; // pop ebx; mov eax, jmp_code_RVA
-    auto rva_bytes = Utilities::to_little_endian_bytes_array(rva); // <jmp_code_RVA> in little endian
-    code.insert(code.end(), rva_bytes.begin(), rva_bytes.end());
-    code.insert(code.end(), {0x29, 0xC3, 0x8B, 0xFB}); // SUB EBX, EAX; MOV EDI, EBX
+    // Recover the image base into EDI/RDI (what call_virtualProtect reads via
+    // ADD EAX,EDI / ADD RAX,RDI). The trampoline is entered by a CALL, so the
+    // return address on the stack is the runtime VA of the point whose compile
+    // -time RVA is `rva`; popping it and subtracting `rva` yields the base.
+    //
+    // This used to be a single constant encoding (5B B8 <rva> 29 C3 8B FB),
+    // which let a YARA/AV rule fingerprint NotPacked++ itself. Emit one of
+    // several semantically-equivalent encodings instead (different scratch
+    // registers / instructions). The variant is chosen once per run so the
+    // sizing pass and the real emission agree on length, while the stub still
+    // differs from one run to the next.
+    static std::mt19937 variant_gen(std::random_device{}());
+    static const int variant = std::uniform_int_distribution<>(0, 5)(variant_gen);
+
+    std::vector<uint8_t> rva_bytes = Utilities::to_little_endian_bytes_array(rva);
+    uint32_t neg_rva = static_cast<uint32_t>(-static_cast<int32_t>(rva));
+    std::vector<uint8_t> neg_rva_bytes = Utilities::to_little_endian_bytes_array(neg_rva);
+
+    std::vector<uint8_t> code;
+    switch (variant) {
+        case 1: // pop edi ; sub edi, rva
+            code = {0x5F, 0x81, 0xEF};
+            code.insert(code.end(), rva_bytes.begin(), rva_bytes.end());
+            break;
+        case 2: // pop edi ; add edi, -rva
+            code = {0x5F, 0x81, 0xC7};
+            code.insert(code.end(), neg_rva_bytes.begin(), neg_rva_bytes.end());
+            break;
+        case 3: // pop ecx ; mov eax, rva ; sub ecx, eax ; mov edi, ecx
+            code = {0x59, 0xB8};
+            code.insert(code.end(), rva_bytes.begin(), rva_bytes.end());
+            code.insert(code.end(), {0x29, 0xC1, 0x8B, 0xF9});
+            break;
+        case 4: // pop ebx ; lea edi, [ebx - rva]
+            code = {0x5B, 0x8D, 0xBB};
+            code.insert(code.end(), neg_rva_bytes.begin(), neg_rva_bytes.end());
+            break;
+        case 5: // pop edx ; mov eax, rva ; sub edx, eax ; mov edi, edx
+            code = {0x5A, 0xB8};
+            code.insert(code.end(), rva_bytes.begin(), rva_bytes.end());
+            code.insert(code.end(), {0x29, 0xC2, 0x8B, 0xFA});
+            break;
+        default: // case 0 (original): pop ebx ; mov eax, rva ; sub ebx, eax ; mov edi, ebx
+            code = {0x5B, 0xB8};
+            code.insert(code.end(), rva_bytes.begin(), rva_bytes.end());
+            code.insert(code.end(), {0x29, 0xC3, 0x8B, 0xFB});
+            break;
+    }
     return code;
 }
 
