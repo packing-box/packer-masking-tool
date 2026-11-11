@@ -3,6 +3,8 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <array>
+#include <cmath>
 
 class Utilities
 {
@@ -87,6 +89,43 @@ public:
         std::mt19937 gen(rd());
         std::uniform_int_distribution<> dis(min, max);
         return dis(gen);
+    }
+
+    // ----- Shannon entropy helpers -----
+    // The tool historically padded sections by fixed byte-count heuristics and
+    // "hoped" the entropy dropped (it never measured it). These make entropy a
+    // measured target: a byte histogram, the Shannon entropy of a histogram
+    // (0..8 bits/byte), and convenience wrappers over a raw buffer.
+
+    static std::array<size_t, 256> byte_histogram(const uint8_t* data, size_t len) {
+        std::array<size_t, 256> counts{};
+        for (size_t i = 0; i < len; ++i) {
+            counts[data[i]]++;
+        }
+        return counts;
+    }
+
+    static double entropy_from_counts(const std::array<size_t, 256>& counts, size_t total) {
+        if (total == 0) {
+            return 0.0;
+        }
+        double entropy = 0.0;
+        for (size_t c : counts) {
+            if (c == 0) {
+                continue;
+            }
+            double p = static_cast<double>(c) / static_cast<double>(total);
+            entropy -= p * std::log2(p);
+        }
+        return entropy;
+    }
+
+    static double compute_entropy(const uint8_t* data, size_t len) {
+        return entropy_from_counts(byte_histogram(data, len), len);
+    }
+
+    static double compute_entropy(const std::vector<uint8_t>& data) {
+        return compute_entropy(data.data(), data.size());
     }
 
 };
