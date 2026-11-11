@@ -3,6 +3,7 @@
 #include <vector>
 #include <random>
 #include <iostream>
+#include <fstream>
 #include <unordered_set>
 #include <cstdlib>  // For std::rand
 #include "PEBinaryModifiers.hpp"
@@ -12,14 +13,15 @@
 #include "constants.hpp"
 
 // class PEBinaryModifiers implementations
-void PEBinaryModifiers::add_section(std::unique_ptr<LIEF::PE::Binary>& binary, const std::string& name, const std::vector<uint8_t>& data, uint32_t characteristics,  LIEF::PE::PE_SECTION_TYPES type) {
+void PEBinaryModifiers::add_section(std::unique_ptr<LIEF::PE::Binary>& binary, const std::string& name, const std::vector<uint8_t>& data, uint32_t characteristics) {
     LIEF::PE::Section section;
     section.name(name);
     if (characteristics == 0)
     {
         characteristics = static_cast<u_int32_t>(LIEF::PE::Section::CHARACTERISTICS::MEM_READ | LIEF::PE::Section::CHARACTERISTICS::MEM_EXECUTE);
     }
-    section.type(type);
+    // NOTE: LIEF 1.0.0 removed PE_SECTION_TYPES / Section::type(); a section is
+    // now defined solely by its characteristics.
     section.characteristics(characteristics);
     section.content(data);
     binary->add_section(section);
@@ -203,7 +205,8 @@ void PEBinaryModifiers::move_entrypoint_to_new_section(std::unique_ptr<LIEF::PE:
     auto& optional_header = binary->optional_header();
     uint64_t original_entrypoint = optional_header.addressof_entrypoint();// + addressof_entrypoint (RVA)
 
-    std::vector<uint8_t> entrypoint_data = get_trampoline_instructions(original_entrypoint, nb_deadcode);
+    bool is_64_bit = binary->header().machine() == LIEF::PE::Header::MACHINE_TYPES::AMD64;
+    std::vector<uint8_t> entrypoint_data = get_trampoline_instructions(original_entrypoint, nb_deadcode, true, is_64_bit);
 
     // Combine pre_data, trampoline, and post_data
     std::vector<uint8_t> section_data = pre_data;
@@ -290,19 +293,49 @@ bool PEBinaryModifiers::set_checksum(std::unique_ptr<LIEF::PE::Binary>& binary, 
     return true;
 }
 
+void PEBinaryModifiers::fix_checksum(const std::string& file_path) {
+    // Must run on the written file: LIEF's compute_checksum() on the in-memory
+    // Binary returns the pre-modification value, so the checksum is recomputed
+    // from the final on-disk bytes and patched directly into the header.
+    std::unique_ptr<LIEF::PE::Binary> pe = LIEF::PE::Parser::parse(file_path);
+    if (pe == nullptr) {
+        return;
+    }
+    // User-mode EXEs are normally shipped with a zero checksum; only a non-zero
+    // checksum has been invalidated by our modifications and needs recomputing.
+    if (pe->optional_header().checksum() == 0) {
+        return;
+    }
+    uint32_t checksum = pe->compute_checksum();
+
+    std::fstream f(file_path, std::ios::in | std::ios::out | std::ios::binary);
+    if (!f) {
+        return;
+    }
+    // The checksum field lives at OptionalHeader offset 0x40, i.e. e_lfanew + 0x58
+    // (PE signature 4 + COFF header 20 + 0x40), identical for PE32 and PE32+.
+    uint32_t e_lfanew = 0;
+    f.seekg(0x3C);
+    f.read(reinterpret_cast<char*>(&e_lfanew), sizeof(e_lfanew));
+    f.seekp(static_cast<std::streamoff>(e_lfanew) + 0x58);
+    f.write(reinterpret_cast<const char*>(&checksum), sizeof(checksum));
+}
+
 void PEBinaryModifiers::add_lib_to_IAT(std::unique_ptr<LIEF::PE::Binary>& binary, const std::string& dll_name) {
     // if library is not imported, add it
     if (!binary->has_import(dll_name)) {
-        binary->add_library(dll_name);
+        binary->add_import(dll_name);
     }
 }
 
 void PEBinaryModifiers::add_API_to_IAT(std::unique_ptr<LIEF::PE::Binary>& binary, const std::string& dll_name, const std::string& api_name) {
-    // if library is not imported, add it
-    if (!binary->has_import(dll_name)) {
-        binary->add_library(dll_name);
+    // LIEF 1.0.0: add_library/add_import_function were replaced by
+    // add_import(dll) -> Import& and Import::add_entry(api).
+    LIEF::PE::Import* import_ = binary->get_import(dll_name);
+    if (import_ == nullptr) {
+        import_ = &binary->add_import(dll_name);
     }
-    binary->add_import_function(dll_name, api_name);
+    import_->add_entry(api_name);
 }
 
 // ==========================================
@@ -337,9 +370,9 @@ bool PEBinaryModifiers::_append_to_section(std::unique_ptr<LIEF::PE::Binary>& bi
 }
 
 // Helper function to add dummy instructions
-std::vector<uint8_t> PEBinaryModifiers::get_dead_code_instructions(size_t count) {
+std::vector<uint8_t> PEBinaryModifiers::get_dead_code_instructions(size_t count, bool is_64_bit) {
 
-    std::vector<std::vector<uint8_t>> dead_code_instructions = PEBinary::get_dead_code_bytes();
+    std::vector<std::vector<uint8_t>> dead_code_instructions = PEBinary::get_dead_code_bytes(is_64_bit);
     std::vector<uint8_t> instructions;
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -354,7 +387,7 @@ std::vector<uint8_t> PEBinaryModifiers::get_dead_code_instructions(size_t count)
 }
 
 
-std::vector<uint8_t> PEBinaryModifiers::get_trampoline_instructions(uint64_t offset, size_t nb_deadcode, bool use_jump) {
+std::vector<uint8_t> PEBinaryModifiers::get_trampoline_instructions(uint64_t offset, size_t nb_deadcode, bool use_jump, bool is_64_bit) {
     std::vector<uint8_t> trampoline;
     trampoline.reserve(5+(nb_deadcode*2)); // Reserve some space to avoid frequent reallocations
 
@@ -362,25 +395,32 @@ std::vector<uint8_t> PEBinaryModifiers::get_trampoline_instructions(uint64_t off
     if(nb_deadcode > 0){
         std::vector<uint8_t> dead_code;
         // Add dead code after the entrypoint, before jumping to the original entrypoint
-        // Generate a random number between 0 and 1
-        int random_number = std::rand() % 101; // Generate a random number between 0 and 100
+        // Generate a random number between 0 and 100 (seeded, so trampolines vary per run)
+        static std::mt19937 gen(std::random_device{}());
+        std::uniform_int_distribution<> distr(0, 100);
+        int random_number = distr(gen);
         bool inject_typical_byte_infront = random_number < 70;
         bool using_prolog = random_number < 15;
 
         if (inject_typical_byte_infront) {
-            if (using_prolog) {
-                // push ebp / mov ebp, esp
-                dead_code.push_back(0x55);
-                dead_code.push_back(0x8B);
-                dead_code.push_back(0xEC);
+            if (is_64_bit) {
+                if (using_prolog) {
+                    // push rbp / mov rbp, rsp
+                    dead_code.insert(dead_code.end(), {0x55, 0x48, 0x89, 0xE5});
+                }
+                // sub rsp, 0x20
+                dead_code.insert(dead_code.end(), {0x48, 0x83, 0xEC, 0x20});
+            } else {
+                if (using_prolog) {
+                    // push ebp / mov ebp, esp
+                    dead_code.insert(dead_code.end(), {0x55, 0x8B, 0xEC});
+                }
+                // sub esp, 0xc
+                dead_code.insert(dead_code.end(), {0x83, 0xEC, 0x0C});
             }
-            // sub esp, 0xc
-            dead_code.push_back(0x83);
-            dead_code.push_back(0xEC);
-            dead_code.push_back(0x0C);
-        } 
+        }
 
-        std::vector<uint8_t> _deadcode = get_dead_code_instructions(nb_deadcode);
+        std::vector<uint8_t> _deadcode = get_dead_code_instructions(nb_deadcode, is_64_bit);
         trampoline.insert(trampoline.end(), dead_code.begin(), dead_code.end());
         trampoline.insert(trampoline.end(), _deadcode.begin(), _deadcode.end());
     }
@@ -416,7 +456,8 @@ void PEBinaryModifiers::move_ep_to_new_section(std::unique_ptr<LIEF::PE::Binary>
         characteristics = static_cast<u_int32_t>(LIEF::PE::Section::CHARACTERISTICS::MEM_READ | LIEF::PE::Section::CHARACTERISTICS::MEM_EXECUTE); 
     }
 
-    std::vector<uint8_t> entrypoint_data = get_trampoline_instructions(0, nb_deadcode, use_jump);
+    bool is_64_bit = binary->header().machine() == LIEF::PE::Header::MACHINE_TYPES::AMD64;
+    std::vector<uint8_t> entrypoint_data = get_trampoline_instructions(0, nb_deadcode, use_jump, is_64_bit);
 
     // Combine pre_data, trampoline, and post_data
     std::vector<uint8_t> section_data = pre_data;
@@ -483,7 +524,7 @@ void PEBinaryModifiers::update_section_permissions(std::unique_ptr<LIEF::PE::Bin
 
 
     // use get_trampoline_instructions
-    std::vector<uint8_t> obfuscated_trampoline = get_trampoline_instructions(0, nb_deadcode, false);
+    std::vector<uint8_t> obfuscated_trampoline = get_trampoline_instructions(0, nb_deadcode, false, is_64_bit);
 
     uint32_t offset_to_second_ep = (pre_data_trampoline.size() + obfuscated_trampoline.size());
     uint32_t neg_offset_to_second_ep = -offset_to_second_ep;
@@ -663,7 +704,7 @@ uint64_t PEBinaryModifiers::get_virtual_protect_address(LIEF::PE::Binary& pe) {
     }
 
     if (kernel32 == nullptr) {
-        kernel32 = &pe.add_library("KERNEL32.DLL");
+        kernel32 = &pe.add_import("KERNEL32.DLL");
     }
 
     // Add 'VirtualProtect' to 'kernel32.dll' and get its import entry

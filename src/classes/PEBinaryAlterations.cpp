@@ -1,4 +1,5 @@
 #include "PEBinary.hpp"
+#include "PEBinaryModifiers.hpp"
 
 //#include "../modifiers/rename_section.cpp"
 #include "Utilities.cpp"
@@ -25,18 +26,37 @@ public:
         return binary;
     }
 
+    void normalize_timestamp(){
+        // Packers frequently zero the PE TimeDateStamp, which is itself a weak
+        // "non-standard build" signal. Give such files a plausible compile time.
+        // A non-zero (presumably genuine) timestamp is left untouched.
+        LIEF::PE::Header& header = binary.get()->header();
+        if (header.time_date_stamp() == 0) {
+            const uint32_t PLAUSIBLE_TIMESTAMP = 0x5F0E9A1C; // 2020-07-15 ~ a plausible build time
+            header.time_date_stamp(PLAUSIBLE_TIMESTAMP);
+            if (verbose) {
+                std::cout << std::endl << YELLOW << "[INFO]  \033[0m Normalizing the zeroed PE timestamp to a plausible value..." << RESET << std::endl;
+            }
+        }
+    }
+
     void build_and_write(std::string output_file_name, bool& edited_iat){
-        LIEF::PE::Builder builder(*binary.get());
-        builder.build_overlay(true);
+        // Header normalization applied on every write path (idempotent):
+        normalize_timestamp();
+
+        // LIEF 1.0.0: the standalone Builder was replaced by Binary::write(path, config_t).
+        LIEF::PE::Builder::config_t config;
+        config.overlay = true;
 
         if(edited_iat){
-            builder.patch_imports(true);
-            builder.build_imports(true); // This adds .l1 section (and breaks the executable)
+            config.imports = true; // reconstruct the import table when the IAT was modified
             edited_iat = false;
         }
-        
-        builder.build();
-        builder.write(output_file_name);
+
+        binary.get()->write(output_file_name, config);
+
+        // Repair the now-invalidated checksum directly on the written file.
+        PEBinaryModifiers::fix_checksum(output_file_name);
     }
     
      void rename_packer_sections(){
@@ -156,7 +176,8 @@ public:
             size_to_fill = section.virtual_size() - section.sizeof_raw_data();
             if(size_to_fill > 0 && section.virtual_size() > section.sizeof_raw_data()){
                 std::vector<uint8_t> data_fill = Utilities::generateRandomBytes(3);
-                std::vector<uint8_t> data(size_to_fill);
+                std::vector<uint8_t> data;
+                data.reserve(size_to_fill);
                 for(size_t i = 0; i < size_to_fill; i++){
                     data.push_back(data_fill[i % 3]);
                 }
@@ -182,7 +203,7 @@ public:
             data.push_back(randbytes[i % 3]);
         }// this for loop is the repeatn function in python
         
-        binary.add_section(new_section_name,data, 0, LIEF::PE::PE_SECTION_TYPES::TEXT);
+        binary.add_section(new_section_name, data, 0);
     }
 
      void add_20_common_api_imports(){

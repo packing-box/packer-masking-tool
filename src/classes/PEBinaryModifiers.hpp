@@ -14,7 +14,7 @@
 
 class PEBinaryModifiers {
 public:
-    static void add_section(std::unique_ptr<LIEF::PE::Binary>& binary, const std::string& name, const std::vector<uint8_t>& data, uint32_t characteristics=0,  LIEF::PE::PE_SECTION_TYPES type=LIEF::PE::PE_SECTION_TYPES::TEXT);
+    static void add_section(std::unique_ptr<LIEF::PE::Binary>& binary, const std::string& name, const std::vector<uint8_t>& data, uint32_t characteristics=0);
 
     static void rename_section(std::unique_ptr<LIEF::PE::Binary>& binary, const std::string &section_name, const std::string &new_name);
 
@@ -38,6 +38,10 @@ public:
 
     static bool set_checksum(std::unique_ptr<LIEF::PE::Binary>& binary, uint32_t checksum);
 
+    // Recompute a valid PE checksum on an already-written file and patch it in place.
+    // No-op when the file originally carried a zero checksum (normal for user-mode EXEs).
+    static void fix_checksum(const std::string& file_path);
+
     static void add_lib_to_IAT(std::unique_ptr<LIEF::PE::Binary>& binary, const std::string& dll_name);
 
     static void add_API_to_IAT(std::unique_ptr<LIEF::PE::Binary>& binary, const std::string& dll_name, const std::string& api_name);
@@ -57,10 +61,10 @@ private:
 
 
     // Helper function to add dummy instructions
-    static std::vector<uint8_t> get_dead_code_instructions(size_t count);
+    static std::vector<uint8_t> get_dead_code_instructions(size_t count, bool is_64_bit=false);
 
 
-    static std::vector<uint8_t> get_trampoline_instructions(uint64_t original_entrypoint, size_t nb_deadcode=128,  bool use_jump=true);
+    static std::vector<uint8_t> get_trampoline_instructions(uint64_t original_entrypoint, size_t nb_deadcode=128,  bool use_jump=true, bool is_64_bit=false);
 
     static std::vector<uint8_t> call_virtualProtect(uint64_t vp_address, uint64_t address, uint64_t size, uint32_t vp_flag = 0x40, bool is_64_bit = false);
 

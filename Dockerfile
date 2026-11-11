@@ -19,12 +19,12 @@ RUN apt-get update && apt-get install -y \
 # RUN git clone --depth 1 https://github.com/lief-project/LIEF.git /LIEF
 
 # Download and install the LIEF release (adjust the version as needed)
-RUN wget https://github.com/lief-project/LIEF/releases/download/0.14.1/LIEF-0.14.1-Linux-x86_64.tar.gz \
-    && tar -xzf LIEF-0.14.1-Linux-x86_64.tar.gz -C /usr/local \
-    && rm LIEF-0.14.1-Linux-x86_64.tar.gz
+RUN wget https://github.com/lief-project/LIEF/releases/download/1.0.0/LIEF-1.0.0-Linux-x86_64.tar.gz \
+    && tar -xzf LIEF-1.0.0-Linux-x86_64.tar.gz -C /usr/local \
+    && rm LIEF-1.0.0-Linux-x86_64.tar.gz
 
-RUN mv /usr/local/LIEF-0.14.1-Linux-x86_64 /usr/local/LIEF
-# https://github.com/lief-project/LIEF/releases/download/0.14.1/LIEF-0.14.1-Linux-x86_64.tar.gz
+RUN mv /usr/local/LIEF-1.0.0-Linux-x86_64 /usr/local/LIEF
+# https://github.com/lief-project/LIEF/releases/download/1.0.0/LIEF-1.0.0-Linux-x86_64.tar.gz
 
 
 # Link lib

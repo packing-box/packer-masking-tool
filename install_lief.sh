@@ -6,12 +6,12 @@
 # (may ask for sudo password)
 
 # Install LIEF
-wget https://github.com/lief-project/LIEF/releases/download/0.14.1/LIEF-0.14.1-Linux-x86_64.tar.gz \
-    && tar -xzf LIEF-0.14.1-Linux-x86_64.tar.gz -C /usr/local \
-    && rm LIEF-0.14.1-Linux-x86_64.tar.gz
+wget https://github.com/lief-project/LIEF/releases/download/1.0.0/LIEF-1.0.0-Linux-x86_64.tar.gz \
+    && tar -xzf LIEF-1.0.0-Linux-x86_64.tar.gz -C /usr/local \
+    && rm LIEF-1.0.0-Linux-x86_64.tar.gz
 
 # Rename the folder to /usr/local/LIEF
-mv /usr/local/LIEF-0.14.1-Linux-x86_64 /usr/local/LIEF
+mv /usr/local/LIEF-1.0.0-Linux-x86_64 /usr/local/LIEF
 
 
 # Create symbolic links
