@@ -261,9 +261,9 @@ void PEBinary::add_API_to_IAT(const std::pair<std::string, std::string>& api_imp
     PEBinaryModifiers::add_API_to_IAT(pe, api_import.first, api_import.second);
 }
 
-void PEBinary::add_section( const std::string& name, const std::vector<uint8_t>& data, uint32_t characteristics, LIEF::PE::PE_SECTION_TYPES type) {
+void PEBinary::add_section( const std::string& name, const std::vector<uint8_t>& data, uint32_t characteristics) {
     // static call to add_section in PEBinaryModifiers
-    PEBinaryModifiers::add_section(pe, name, data, characteristics, type);
+    PEBinaryModifiers::add_section(pe, name, data, characteristics);
 }
 
 void PEBinary::rename_section( const std::string &section_name, const std::string &new_name) {

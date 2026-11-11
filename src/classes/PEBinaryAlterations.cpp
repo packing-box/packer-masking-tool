@@ -26,17 +26,16 @@ public:
     }
 
     void build_and_write(std::string output_file_name, bool& edited_iat){
-        LIEF::PE::Builder builder(*binary.get());
-        builder.build_overlay(true);
+        // LIEF 1.0.0: the standalone Builder was replaced by Binary::write(path, config_t).
+        LIEF::PE::Builder::config_t config;
+        config.overlay = true;
 
         if(edited_iat){
-            builder.patch_imports(true);
-            builder.build_imports(true); // This adds .l1 section (and breaks the executable)
+            config.imports = true; // reconstruct the import table when the IAT was modified
             edited_iat = false;
         }
-        
-        builder.build();
-        builder.write(output_file_name);
+
+        binary.get()->write(output_file_name, config);
     }
     
      void rename_packer_sections(){
@@ -183,7 +182,7 @@ public:
             data.push_back(randbytes[i % 3]);
         }// this for loop is the repeatn function in python
         
-        binary.add_section(new_section_name,data, 0, LIEF::PE::PE_SECTION_TYPES::TEXT);
+        binary.add_section(new_section_name, data, 0);
     }
 
      void add_20_common_api_imports(){

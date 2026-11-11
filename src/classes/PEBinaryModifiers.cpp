@@ -12,14 +12,15 @@
 #include "constants.hpp"
 
 // class PEBinaryModifiers implementations
-void PEBinaryModifiers::add_section(std::unique_ptr<LIEF::PE::Binary>& binary, const std::string& name, const std::vector<uint8_t>& data, uint32_t characteristics,  LIEF::PE::PE_SECTION_TYPES type) {
+void PEBinaryModifiers::add_section(std::unique_ptr<LIEF::PE::Binary>& binary, const std::string& name, const std::vector<uint8_t>& data, uint32_t characteristics) {
     LIEF::PE::Section section;
     section.name(name);
     if (characteristics == 0)
     {
         characteristics = static_cast<u_int32_t>(LIEF::PE::Section::CHARACTERISTICS::MEM_READ | LIEF::PE::Section::CHARACTERISTICS::MEM_EXECUTE);
     }
-    section.type(type);
+    // NOTE: LIEF 1.0.0 removed PE_SECTION_TYPES / Section::type(); a section is
+    // now defined solely by its characteristics.
     section.characteristics(characteristics);
     section.content(data);
     binary->add_section(section);
@@ -294,16 +295,18 @@ bool PEBinaryModifiers::set_checksum(std::unique_ptr<LIEF::PE::Binary>& binary, 
 void PEBinaryModifiers::add_lib_to_IAT(std::unique_ptr<LIEF::PE::Binary>& binary, const std::string& dll_name) {
     // if library is not imported, add it
     if (!binary->has_import(dll_name)) {
-        binary->add_library(dll_name);
+        binary->add_import(dll_name);
     }
 }
 
 void PEBinaryModifiers::add_API_to_IAT(std::unique_ptr<LIEF::PE::Binary>& binary, const std::string& dll_name, const std::string& api_name) {
-    // if library is not imported, add it
-    if (!binary->has_import(dll_name)) {
-        binary->add_library(dll_name);
+    // LIEF 1.0.0: add_library/add_import_function were replaced by
+    // add_import(dll) -> Import& and Import::add_entry(api).
+    LIEF::PE::Import* import_ = binary->get_import(dll_name);
+    if (import_ == nullptr) {
+        import_ = &binary->add_import(dll_name);
     }
-    binary->add_import_function(dll_name, api_name);
+    import_->add_entry(api_name);
 }
 
 // ==========================================
@@ -672,7 +675,7 @@ uint64_t PEBinaryModifiers::get_virtual_protect_address(LIEF::PE::Binary& pe) {
     }
 
     if (kernel32 == nullptr) {
-        kernel32 = &pe.add_library("KERNEL32.DLL");
+        kernel32 = &pe.add_import("KERNEL32.DLL");
     }
 
     // Add 'VirtualProtect' to 'kernel32.dll' and get its import entry

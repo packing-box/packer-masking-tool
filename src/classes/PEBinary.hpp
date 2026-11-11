@@ -33,7 +33,7 @@ public:
     static std::vector<std::vector<u_int8_t>> get_dead_code_bytes(bool is_64_bit=false);
     std::vector<std::pair<std::string, std::string>> get_common_api_imports();
     void add_API_to_IAT(const std::pair<std::string, std::string>& api_import);
-    void add_section(const std::string& name, const std::vector<uint8_t>& data, uint32_t characteristics=0, LIEF::PE::PE_SECTION_TYPES type=LIEF::PE::PE_SECTION_TYPES::TEXT);
+    void add_section(const std::string& name, const std::vector<uint8_t>& data, uint32_t characteristics=0);
     void rename_section(const std::string &section_name, const std::string &new_name);
     void append_to_section(const std::string& section_name, const std::vector<uint8_t>& data);
     void move_entrypoint_to_new_section(const std::string& name, uint32_t characteristics=0, const std::vector<uint8_t>& pre_data={}, const std::vector<uint8_t>& post_data={});
