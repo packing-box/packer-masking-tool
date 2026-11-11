@@ -8,6 +8,8 @@
 #include "RawSizeEditor.hpp"
 #include "constants.hpp"
 #include <algorithm>
+#include <array>
+#include <iomanip>
 
 class PEBinaryAlterations {
 public:
@@ -167,21 +169,56 @@ public:
     }
 
      void fill_sections_with_zeros(){
-        // Description: Stretch sections with zeros from their raw size to their virtual size
-        size_t size_to_fill = 0; // its unsigned !!
+        // Description: Stretch each section's on-disk data from its raw size up to
+        // its virtual size, using the slack as an entropy-reduction opportunity.
+        //
+        // Entropy-aware filling (bintropy defeats high per-section entropy):
+        //   - A packed section measures near 8.0 bits/byte. Its slack is filled
+        //     with zero bytes, which maximize the drop in measured entropy per
+        //     added byte and read like ordinary tail/BSS padding (so, unlike a
+        //     repeated random pattern, they are not a NotPacked++ signature).
+        //   - A low-entropy section has nothing to gain from flattening, so its
+        //     slack keeps the varied 3-byte filler; a long constant run there
+        //     would be its own anomaly.
+        const double ENTROPY_THRESHOLD = 7.0; // bintropy-style per-section ceiling
         if(verbose){
-            std::cout <<std::endl<< YELLOW << "[INFO]  \033[0m Filling sections with zeros from their raw size to their virtual size..." << RESET << std::endl;
+            std::cout <<std::endl<< YELLOW << "[INFO]  \033[0m Filling section slack to standard sizes (zeroing packed sections to lower their entropy)..." << RESET << std::endl;
         }
         for(LIEF::PE::Section& section : binary.get_sections()){
-            size_to_fill = section.virtual_size() - section.sizeof_raw_data();
-            if(size_to_fill > 0 && section.virtual_size() > section.sizeof_raw_data()){
+            auto content = section.content();
+            size_t raw_size = content.size();
+            if(section.virtual_size() <= raw_size){
+                continue; // no slack to fill
+            }
+            size_t size_to_fill = section.virtual_size() - raw_size;
+
+            // Measure the section's current entropy from its byte histogram.
+            std::array<size_t, 256> counts = Utilities::byte_histogram(content.data(), raw_size);
+            double before = Utilities::entropy_from_counts(counts, raw_size);
+
+            std::vector<uint8_t> data;
+            data.reserve(size_to_fill);
+            double after = before;
+            if(before > ENTROPY_THRESHOLD){
+                // Packed section: dilute with zeros and predict the resulting entropy.
+                data.assign(size_to_fill, 0x00);
+                counts[0] += size_to_fill;
+                after = Utilities::entropy_from_counts(counts, raw_size + size_to_fill);
+            }else{
                 std::vector<uint8_t> data_fill = Utilities::generateRandomBytes(3);
-                std::vector<uint8_t> data;
-                data.reserve(size_to_fill);
                 for(size_t i = 0; i < size_to_fill; i++){
                     data.push_back(data_fill[i % 3]);
                 }
-                binary.append_to_section(section.name(), data);
+            }
+            binary.append_to_section(section.name(), data);
+
+            if(verbose && before > ENTROPY_THRESHOLD){
+                std::cout << "        \"" << section.name() << "\" entropy " << std::fixed << std::setprecision(3)
+                          << before << " -> " << after << " (filled " << size_to_fill << " bytes)";
+                if(after > ENTROPY_THRESHOLD){
+                    std::cout << RED << "  [still above " << ENTROPY_THRESHOLD << ": insufficient slack]" << RESET;
+                }
+                std::cout << std::endl;
             }
         }
         // std::cerr << RED << "[WARNING] \033[0m Currently filling sections with zeros does NOT ALWAYS maintain the executable functionality..." << RESET << std::endl;
