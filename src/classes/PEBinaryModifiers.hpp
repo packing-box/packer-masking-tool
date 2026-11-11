@@ -38,6 +38,10 @@ public:
 
     static bool set_checksum(std::unique_ptr<LIEF::PE::Binary>& binary, uint32_t checksum);
 
+    // Recompute a valid PE checksum on an already-written file and patch it in place.
+    // No-op when the file originally carried a zero checksum (normal for user-mode EXEs).
+    static void fix_checksum(const std::string& file_path);
+
     static void add_lib_to_IAT(std::unique_ptr<LIEF::PE::Binary>& binary, const std::string& dll_name);
 
     static void add_API_to_IAT(std::unique_ptr<LIEF::PE::Binary>& binary, const std::string& dll_name, const std::string& api_name);

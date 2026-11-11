@@ -3,6 +3,7 @@
 #include <vector>
 #include <random>
 #include <iostream>
+#include <fstream>
 #include <unordered_set>
 #include <cstdlib>  // For std::rand
 #include "PEBinaryModifiers.hpp"
@@ -290,6 +291,34 @@ void PEBinaryModifiers::move_entrypoint_to_slack_space(std::unique_ptr<LIEF::PE:
 bool PEBinaryModifiers::set_checksum(std::unique_ptr<LIEF::PE::Binary>& binary, uint32_t checksum) {
     binary->optional_header().checksum(checksum);
     return true;
+}
+
+void PEBinaryModifiers::fix_checksum(const std::string& file_path) {
+    // Must run on the written file: LIEF's compute_checksum() on the in-memory
+    // Binary returns the pre-modification value, so the checksum is recomputed
+    // from the final on-disk bytes and patched directly into the header.
+    std::unique_ptr<LIEF::PE::Binary> pe = LIEF::PE::Parser::parse(file_path);
+    if (pe == nullptr) {
+        return;
+    }
+    // User-mode EXEs are normally shipped with a zero checksum; only a non-zero
+    // checksum has been invalidated by our modifications and needs recomputing.
+    if (pe->optional_header().checksum() == 0) {
+        return;
+    }
+    uint32_t checksum = pe->compute_checksum();
+
+    std::fstream f(file_path, std::ios::in | std::ios::out | std::ios::binary);
+    if (!f) {
+        return;
+    }
+    // The checksum field lives at OptionalHeader offset 0x40, i.e. e_lfanew + 0x58
+    // (PE signature 4 + COFF header 20 + 0x40), identical for PE32 and PE32+.
+    uint32_t e_lfanew = 0;
+    f.seekg(0x3C);
+    f.read(reinterpret_cast<char*>(&e_lfanew), sizeof(e_lfanew));
+    f.seekp(static_cast<std::streamoff>(e_lfanew) + 0x58);
+    f.write(reinterpret_cast<const char*>(&checksum), sizeof(checksum));
 }
 
 void PEBinaryModifiers::add_lib_to_IAT(std::unique_ptr<LIEF::PE::Binary>& binary, const std::string& dll_name) {

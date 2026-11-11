@@ -1,4 +1,5 @@
 #include "PEBinary.hpp"
+#include "PEBinaryModifiers.hpp"
 
 //#include "../modifiers/rename_section.cpp"
 #include "Utilities.cpp"
@@ -25,7 +26,24 @@ public:
         return binary;
     }
 
+    void normalize_timestamp(){
+        // Packers frequently zero the PE TimeDateStamp, which is itself a weak
+        // "non-standard build" signal. Give such files a plausible compile time.
+        // A non-zero (presumably genuine) timestamp is left untouched.
+        LIEF::PE::Header& header = binary.get()->header();
+        if (header.time_date_stamp() == 0) {
+            const uint32_t PLAUSIBLE_TIMESTAMP = 0x5F0E9A1C; // 2020-07-15 ~ a plausible build time
+            header.time_date_stamp(PLAUSIBLE_TIMESTAMP);
+            if (verbose) {
+                std::cout << std::endl << YELLOW << "[INFO]  \033[0m Normalizing the zeroed PE timestamp to a plausible value..." << RESET << std::endl;
+            }
+        }
+    }
+
     void build_and_write(std::string output_file_name, bool& edited_iat){
+        // Header normalization applied on every write path (idempotent):
+        normalize_timestamp();
+
         // LIEF 1.0.0: the standalone Builder was replaced by Binary::write(path, config_t).
         LIEF::PE::Builder::config_t config;
         config.overlay = true;
@@ -36,6 +54,9 @@ public:
         }
 
         binary.get()->write(output_file_name, config);
+
+        // Repair the now-invalidated checksum directly on the written file.
+        PEBinaryModifiers::fix_checksum(output_file_name);
     }
     
      void rename_packer_sections(){
