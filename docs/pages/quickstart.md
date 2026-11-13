@@ -27,20 +27,23 @@ Usage: ./notpacked++ <input_file> [OPTIONS]
     -o <output_file>  : Set the output file name. (default:<input_file>_out.exe)
     --help            : Display this help message.
 
-Other options: (by default the behavior is --permissions --raw-size)
+Other options: (by default the behavior is --fill-sections --permissions)
+    --add-api         : Add up to 20 common API imports to inflate the import table. Use on its own (not with --permissions).
     --fill-sections   : Fill sections with zeros from their raw size to their virtual size.
     --rename-sections : Rename packer sections to standard section names.
-    --permissions      : Update the permissions of all sections to standard ones (rwx/rw-/..), moves the EP to a new section and renames sections.
+    --permissions     : Update the permissions of all sections to standard ones (rwx/rw-/..), moves the EP to a new section and renames sections.
     --raw-size    : Edit the raw size value in the header of sections having a 0 raw size (without adding real data bytes).
 
 ```
 
-### Use case 1: All alterations
+### Use case 1: Default alterations
 `notpacked++ input.exe`
-This will apply the following alterations to the input file : 
+When no alteration is specified, the default behavior applies the following to the input file :
 
+- `--fill-sections`: Fill each section's slack up to its virtual size, lowering the entropy of packed sections.
 - `--permissions`: Update the permissions of the sections to standard permissions (read, write, execute). This alteration also moves the entry point to a new section and renames sections.
-- `--raw-size`: Edit the raw size value in the header of sections having a 0 raw size (without adding real data bytes).
+
+> Note: a few header-level normalizations (checksum recomputation, zeroed-timestamp fix) are applied on every run, whatever the selected alterations. See [Alterations](alterations.md).
 
 ### Use case 2: Selected alterations
 `notpacked++ input.exe --rename-sections --fill-sections`
