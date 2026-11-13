@@ -128,4 +128,33 @@ public:
         return compute_entropy(data.data(), data.size());
     }
 
+    // Draw `n` bytes i.i.d. from a 256-bin frequency distribution. The result
+    // has (statistically) the same byte histogram as the source - hence a
+    // similar entropy and the same "does this look like data" profile - but it
+    // is aperiodic and not a verbatim copy of any region. Used to produce
+    // filler that resembles genuine section data instead of a constant run or a
+    // 3-byte repeating pattern. Falls back to a plausible zeros-plus-ASCII
+    // distribution when the source histogram is empty.
+    static std::vector<uint8_t> sample_from_counts(const std::array<size_t, 256>& counts, size_t n, std::mt19937& gen) {
+        std::vector<double> weights(counts.begin(), counts.end());
+        bool any = false;
+        for (double w : weights) {
+            if (w > 0.0) { any = true; break; }
+        }
+        if (!any) {
+            weights.assign(256, 0.0);
+            weights[0x00] = 8.0;                       // padding/zeros, common in real data
+            for (int c = 'a'; c <= 'z'; ++c) weights[c] = 1.0;
+            for (int c = 'A'; c <= 'Z'; ++c) weights[c] = 0.5;
+            weights[0x20] = 2.0;                        // space
+        }
+        std::discrete_distribution<int> dist(weights.begin(), weights.end());
+        std::vector<uint8_t> out;
+        out.reserve(n);
+        for (size_t i = 0; i < n; ++i) {
+            out.push_back(static_cast<uint8_t>(dist(gen)));
+        }
+        return out;
+    }
+
 };

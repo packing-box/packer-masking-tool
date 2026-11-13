@@ -98,17 +98,16 @@ public:
             size_t random_nb_bytes = Utilities::get_random_number(lower_bound, higher_bound);
             //std::vector<uint8_t> post_data = Utilities::generateRandomBytes(random_nb_bytes);
 
-            std::vector<uint8_t> post_data;
-            std::vector<uint8_t> randbytes = Utilities::generateRandomBytes(3);
-            for(size_t i = 0; i < random_nb_bytes; i++){
-                post_data.push_back(randbytes[i % 3]);
-            }
-
-            std::vector<uint8_t> pre_data;
-            std::vector<uint8_t> randbytes2 = Utilities::generateRandomBytes(3);
-            for(size_t i = 0; i < random_nb_bytes; i++){
-                pre_data.push_back(randbytes2[i % 3]);
-            }
+            // Filler that wraps the trampoline in the new section. A 3-byte
+            // repeating pattern reads as low entropy but looks like nothing real
+            // ("does this look like data" heuristics flag a perfectly periodic
+            // run). Draw it instead from the byte distribution of a genuine
+            // low-entropy section of this file, so it resembles real data while
+            // staying well under the entropy threshold. Per-section entropy is
+            // handled separately by fill_sections_with_zeros, so this block no
+            // longer needs to be ultra-low-entropy.
+            std::vector<uint8_t> post_data = make_realistic_filler(random_nb_bytes);
+            std::vector<uint8_t> pre_data = make_realistic_filler(random_nb_bytes);
 
             size_t nb_deadcode = Utilities::get_random_number(256, 512);
             // generate random number between
@@ -205,10 +204,10 @@ public:
                 counts[0] += size_to_fill;
                 after = Utilities::entropy_from_counts(counts, raw_size + size_to_fill);
             }else{
-                std::vector<uint8_t> data_fill = Utilities::generateRandomBytes(3);
-                for(size_t i = 0; i < size_to_fill; i++){
-                    data.push_back(data_fill[i % 3]);
-                }
+                // Low-entropy section: no entropy to shave off, so fill the
+                // slack with data-like filler (sampled from a real section's
+                // histogram) rather than a periodic 3-byte run.
+                data = make_realistic_filler(size_to_fill);
             }
             binary.append_to_section(section.name(), data);
 
@@ -278,6 +277,38 @@ public:
 private:
     PEBinary& binary;
     bool verbose = false;
+
+    // Produce `n` bytes of filler that resemble genuine data in this file.
+    // Picks the lowest-entropy sizable real section as a distribution donor and
+    // samples i.i.d. from its byte histogram: the filler then shares a real
+    // section's byte profile (and low entropy) but is aperiodic and not a
+    // verbatim copy. Falls back to a plausible default distribution when no
+    // suitable donor exists (handled by Utilities::sample_from_counts).
+    std::vector<uint8_t> make_realistic_filler(size_t n){
+        std::array<size_t, 256> donor_counts{};
+        bool found = false;
+        double best_entropy = 1e9;
+        for(LIEF::PE::Section& section : binary.get_sections()){
+            auto content = section.content();
+            if(content.size() < 256){
+                continue; // too small to characterize a distribution
+            }
+            std::array<size_t, 256> counts = Utilities::byte_histogram(content.data(), content.size());
+            double e = Utilities::entropy_from_counts(counts, content.size());
+            // Prefer a genuinely low-entropy data-like section, but skip trivial
+            // all-constant sections (entropy ~0) which would just reintroduce a
+            // constant run.
+            if(e > 0.5 && e < 6.5 && e < best_entropy){
+                best_entropy = e;
+                donor_counts = counts;
+                found = true;
+            }
+        }
+        static std::mt19937 gen(std::random_device{}());
+        std::array<size_t, 256> empty{};
+        return Utilities::sample_from_counts(found ? donor_counts : empty, n, gen);
+    }
+
      void _rename_one_packer_section(){
 
         // -- Get the section names --
