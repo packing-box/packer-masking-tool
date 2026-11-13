@@ -34,8 +34,15 @@ public:
         // A non-zero (presumably genuine) timestamp is left untouched.
         LIEF::PE::Header& header = binary.get()->header();
         if (header.time_date_stamp() == 0) {
-            const uint32_t PLAUSIBLE_TIMESTAMP = 0x5F0E9A1C; // 2020-07-15 ~ a plausible build time
-            header.time_date_stamp(PLAUSIBLE_TIMESTAMP);
+            // Pick a plausible past build time at random rather than a fixed
+            // constant: a single hard-coded timestamp on every output would
+            // itself be a NotPacked++ signature. Range: 2015-01-01 .. 2024-12-31
+            // (comfortably in the past, so never a suspicious future date).
+            const uint32_t TS_MIN = 0x54A48180; // 2015-01-01
+            const uint32_t TS_MAX = 0x67738E80; // 2024-12-31
+            uint32_t plausible_timestamp = static_cast<uint32_t>(
+                Utilities::get_random_number(TS_MIN, TS_MAX));
+            header.time_date_stamp(plausible_timestamp);
             if (verbose) {
                 std::cout << std::endl << YELLOW << "[INFO]  \033[0m Normalizing the zeroed PE timestamp to a plausible value..." << RESET << std::endl;
             }

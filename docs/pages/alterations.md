@@ -92,8 +92,9 @@ is written:
   This is a no-op when the original file had a zero checksum, which is normal
   for user-mode executables.
 - **Timestamp**: a zeroed `TimeDateStamp` (a weak "non-standard build" signal
-  that packers often leave behind) is replaced with a plausible build time. A
-  non-zero timestamp is left untouched.
+  that packers often leave behind) is replaced with a plausible build time,
+  drawn at random from a past window (2015-2024) so the value is not itself a
+  constant NotPacked++ signature. A non-zero timestamp is left untouched.
 
 
 ## Anti-signature and realism
